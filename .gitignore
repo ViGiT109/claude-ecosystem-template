@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+*.whl
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Linter / test caches
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+junit.xml
+
+# Node
+node_modules/
+.next/
+out/
+.turbo/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Secrets
+.env
+
+# Claude Code (local, user-specific)
+.claude/settings.local.json
+.claude/sessions/
+.claude/backups/
+.claude/shell-snapshots/
+.claude/worktrees/
+
+# MCP Python venv (regenerates from scripts/setup_mcp.ps1)
+.mcp_venv/
+
+# ChromaDB vector store (binary, regenerates from .memory/lessons.md)
+.memory/chroma_db/
+.memory/models/

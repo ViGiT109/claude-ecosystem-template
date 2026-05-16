@@ -1,0 +1,327 @@
+#!/usr/bin/env python3
+"""
+ReasoningBank Semantic Memory — Phase 2.
+
+ChromaDB-backed semantic retrieval for project agent memory.
+Uses all-mpnet-base-v2 for embeddings (768-dim, best quality).
+Custom fine-tuned model is used if it exists at .memory/models/project-mpnet/.
+
+Usage:
+    python scripts/reasoning_bank.py ingest_lessons
+    python scripts/reasoning_bank.py ingest_trajectories
+    python scripts/reasoning_bank.py retrieve "query text" [--top-k 5]
+    python scripts/reasoning_bank.py stats
+"""
+
+from __future__ import annotations
+
+import json
+import re
+import sys
+from pathlib import Path
+
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+DB_PATH = Path(".memory/chroma_db")
+LESSONS_FILE = Path(".memory/lessons.md")
+TRAJECTORIES_FILE = Path(".memory/session_trajectories.jsonl")
+RETRIEVAL_LOGS_FILE = Path(".memory/retrieval_logs.jsonl")
+CUSTOM_MODEL_PATH = Path(".memory/models/project-mpnet")
+MODEL_NAME = "all-mpnet-base-v2"
+
+COLLECTION_LESSONS = "lessons"
+COLLECTION_TRAJECTORIES = "trajectories"
+
+
+# ---------------------------------------------------------------------------
+# Lazy imports (heavy deps, only when needed)
+# ---------------------------------------------------------------------------
+def _get_client():  # noqa: ANN201
+    """Initialize ChromaDB persistent client."""
+    try:
+        import chromadb
+    except ModuleNotFoundError:
+        print("❌ Error: 'chromadb' not found. Install it first: pip install chromadb", file=sys.stderr)
+        sys.exit(1)
+
+    DB_PATH.mkdir(parents=True, exist_ok=True)
+    return chromadb.PersistentClient(path=str(DB_PATH))
+
+
+def _get_embedding_fn():  # noqa: ANN201
+    """Initialize sentence-transformers embedding function."""
+    from chromadb.utils import embedding_functions
+
+    model_name_or_path = str(CUSTOM_MODEL_PATH) if CUSTOM_MODEL_PATH.exists() else MODEL_NAME
+    return embedding_functions.SentenceTransformerEmbeddingFunction(
+        model_name=model_name_or_path,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Parsing
+# ---------------------------------------------------------------------------
+def parse_lessons(filepath: Path = LESSONS_FILE) -> list[dict[str, str]]:
+    """Parse lessons.md into structured Memory Items.
+
+    Expected format per lesson:
+        ### Memory Item: {display_title}
+        **Title:** {title}
+        **Description:** {description}
+        **Content:** {content}
+        **Source:** {source}
+
+    Returns list of dicts with keys: id, title, description, content, source, document.
+    """
+    text = filepath.read_text(encoding="utf-8")
+    pattern = re.compile(
+        r"### Memory Item:\s*(.+?)\n"
+        r"\*\*Title:\*\*\s*(.+?)\n"
+        r"\*\*Description:\*\*\s*(.+?)\n"
+        r"\*\*Content:\*\*\s*(.+?)\n"
+        r"\*\*Source:\*\*\s*(.+?)(?:\n|$)",
+        re.DOTALL,
+    )
+
+    lessons = []
+    for i, match in enumerate(pattern.finditer(text), start=1):
+        display_title, title, description, content, source = (
+            m.strip() for m in match.groups()
+        )
+        lessons.append({
+            "id": f"lesson-{i:03d}",
+            "title": title,
+            "description": description,
+            "content": content,
+            "source": source,
+            "document": f"{title}\n{description}\n{content}",
+        })
+
+    return lessons
+
+
+def parse_trajectories(filepath: Path = TRAJECTORIES_FILE) -> list[dict[str, str]]:
+    """Parse session_trajectories.jsonl into embeddable records."""
+    if not filepath.exists():
+        return []
+
+    trajectories = []
+    for i, line in enumerate(filepath.read_text(encoding="utf-8").splitlines(), start=1):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+
+        commit_msg = record.get("commit_msg", "")
+        outcome = record.get("outcome", "unknown")
+        task_completion = record.get("task_completion", "N/A")
+        document = f"{commit_msg} | outcome: {outcome} | tasks: {task_completion}"
+
+        trajectories.append({
+            "id": f"trajectory-{i:03d}",
+            "document": document,
+            "date": record.get("date", ""),
+            "outcome": outcome,
+            "commit_msg": commit_msg,
+        })
+
+    return trajectories
+
+
+# ---------------------------------------------------------------------------
+# Core Operations
+# ---------------------------------------------------------------------------
+def ingest_lessons() -> int:
+    """Parse lessons.md and upsert into ChromaDB. Returns number of lessons ingested."""
+    client = _get_client()
+    embedding_fn = _get_embedding_fn()
+    collection = client.get_or_create_collection(
+        name=COLLECTION_LESSONS,
+        embedding_function=embedding_fn,
+    )
+
+    lessons = parse_lessons()
+    if not lessons:
+        print("⚠️  No lessons found in", LESSONS_FILE)
+        return 0
+
+    collection.upsert(
+        ids=[l["id"] for l in lessons],
+        documents=[l["document"] for l in lessons],
+        metadatas=[
+            {"title": l["title"], "source": l["source"], "description": l["description"]}
+            for l in lessons
+        ],
+    )
+
+    count = collection.count()
+    print(f"✅ Ingested {len(lessons)} lessons → collection '{COLLECTION_LESSONS}' (total: {count})")
+    return count
+
+
+def ingest_trajectories() -> int:
+    """Parse session_trajectories.jsonl and upsert into ChromaDB."""
+    client = _get_client()
+    embedding_fn = _get_embedding_fn()
+    collection = client.get_or_create_collection(
+        name=COLLECTION_TRAJECTORIES,
+        embedding_function=embedding_fn,
+    )
+
+    trajectories = parse_trajectories()
+    if not trajectories:
+        print("⚠️  No trajectories found in", TRAJECTORIES_FILE)
+        return 0
+
+    collection.upsert(
+        ids=[t["id"] for t in trajectories],
+        documents=[t["document"] for t in trajectories],
+        metadatas=[
+            {"date": t["date"], "outcome": t["outcome"], "commit_msg": t["commit_msg"]}
+            for t in trajectories
+        ],
+    )
+
+    count = collection.count()
+    print(f"✅ Ingested {len(trajectories)} trajectories → collection '{COLLECTION_TRAJECTORIES}' (total: {count})")
+    return count
+
+
+def retrieve(query: str, *, top_k: int = 5, collection_name: str = COLLECTION_LESSONS) -> list[dict]:
+    """Semantic search over a collection.
+
+    Returns list of results with keys: id, document, metadata, distance.
+    """
+    client = _get_client()
+    embedding_fn = _get_embedding_fn()
+
+    try:
+        collection = client.get_collection(
+            name=collection_name,
+            embedding_function=embedding_fn,
+        )
+    except Exception:
+        print(f"⚠️  Collection '{collection_name}' not found. Run ingest first.")
+        return []
+
+    actual_count = collection.count()
+    if actual_count == 0:
+        print(f"⚠️  Collection '{collection_name}' is empty.")
+        return []
+
+    n = min(top_k, actual_count)
+    results = collection.query(query_texts=[query], n_results=n)
+
+    items = []
+    if results and results["ids"] and results["ids"][0]:
+        for i, doc_id in enumerate(results["ids"][0]):
+            items.append({
+                "id": doc_id,
+                "document": results["documents"][0][i] if results["documents"] else "",
+                "metadata": results["metadatas"][0][i] if results["metadatas"] else {},
+                "distance": results["distances"][0][i] if results["distances"] else None,
+            })
+
+    if items:
+        import datetime
+        log_entry = {
+            "timestamp": datetime.datetime.now(datetime.UTC).isoformat(),
+            "query": query,
+            "collection": collection_name,
+            "retrieved_ids": [item["id"] for item in items],
+        }
+        with RETRIEVAL_LOGS_FILE.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(log_entry) + "\n")
+
+    return items
+
+
+def show_stats() -> None:
+    """Print collection statistics."""
+    client = _get_client()
+    print("📊 ReasoningBank Stats")
+    print("=" * 40)
+    for name in [COLLECTION_LESSONS, COLLECTION_TRAJECTORIES]:
+        try:
+            col = client.get_collection(name=name)
+            print(f"  {name}: {col.count()} records")
+        except Exception:
+            print(f"  {name}: (not created)")
+    print(f"  model: {MODEL_NAME}")
+    print(f"  custom model: {CUSTOM_MODEL_PATH} ({'exists' if CUSTOM_MODEL_PATH.exists() else 'not found — using base'})")
+    print(f"  db_path: {DB_PATH.resolve()}")
+
+
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
+def main() -> None:
+    """CLI entry point for reasoning_bank operations."""
+    if len(sys.argv) < 2:
+        print(__doc__)
+        sys.exit(1)
+
+    command = sys.argv[1]
+
+    if command == "ingest_lessons":
+        ingest_lessons()
+
+    elif command == "ingest_trajectories":
+        ingest_trajectories()
+
+    elif command == "ingest_all":
+        ingest_lessons()
+        ingest_trajectories()
+
+    elif command == "retrieve":
+        if len(sys.argv) < 3:
+            print('Usage: python scripts/reasoning_bank.py retrieve "query" [--top-k 5]')
+            sys.exit(1)
+
+        query = sys.argv[2]
+        top_k = 5
+        collection = COLLECTION_LESSONS
+
+        i = 3
+        while i < len(sys.argv):
+            if sys.argv[i] == "--top-k" and i + 1 < len(sys.argv):
+                top_k = int(sys.argv[i + 1])
+                i += 2
+            elif sys.argv[i] == "--collection" and i + 1 < len(sys.argv):
+                collection = sys.argv[i + 1]
+                i += 2
+            else:
+                i += 1
+
+        results = retrieve(query, top_k=top_k, collection_name=collection)
+        if not results:
+            print("No results found.")
+            return
+
+        print(f'\n🔍 Top-{len(results)} results for: "{query}"')
+        print("=" * 60)
+        for rank, item in enumerate(results, 1):
+            meta = item["metadata"]
+            title = meta.get("title", item["id"])
+            print(f"\n#{rank} [{item['id']}] (distance: {item['distance']:.4f})")
+            print(f"   Title: {title}")
+            if "description" in meta:
+                print(f"   Description: {meta['description']}")
+            if "source" in meta:
+                print(f"   Source: {meta['source']}")
+
+    elif command == "stats":
+        show_stats()
+
+    else:
+        print(f"Unknown command: {command}")
+        print("Available: ingest_lessons, ingest_trajectories, ingest_all, retrieve, stats")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

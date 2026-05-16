@@ -1,0 +1,26 @@
+# Project ecosystem configuration
+# Read by: scripts/health_check.py, .github/workflows/ci.yml, bootstrap.ps1
+# Run bootstrap.ps1 to populate this file automatically.
+
+[project]
+name = "${PROJECT_NAME}"
+language = ""            # "python" | "node" | "both" | "other"
+entry_module = ""        # e.g. "main.py" or "src/index.ts"
+build_command = ""       # e.g. "python main.py" or "npm start"
+
+[project.python]
+# Populated only when language = "python" or "both"
+backend_modules = []     # modules where print() is forbidden; used by health_check.py
+min_version = "3.11"
+package_manager = ""     # "uv" | "pip" | "poetry"
+
+[project.node]
+# Populated only when language = "node" or "both"
+package_manager = ""     # "npm" | "pnpm" | "yarn"
+
+[git]
+main_branch = "main"
+scopes = ["core", "api", "ui", "config", "docs", "infra"]  # Conventional Commit scopes
+
+[mcp]
+servers = ["sequential-thinking", "github"]

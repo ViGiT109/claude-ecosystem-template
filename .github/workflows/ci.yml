@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    name: Lint and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read ecosystem config
+        id: ecosystem
+        run: |
+          if [ -f ".ecosystem.toml" ]; then
+            lang=$(python3 -c "
+          import sys
+          try:
+            import tomllib
+          except ImportError:
+            import tomli as tomllib
+          with open('.ecosystem.toml','rb') as f:
+            d = tomllib.load(f)
+          print(d.get('project',{}).get('language',''))
+          " 2>/dev/null || echo "")
+            echo "language=$lang" >> "$GITHUB_OUTPUT"
+          else
+            echo "language=" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ── Python path ─────────────────────────────────────────────────────────
+      - name: Set up uv (Python projects)
+        if: contains(steps.ecosystem.outputs.language, 'python')
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install Python dependencies
+        if: contains(steps.ecosystem.outputs.language, 'python')
+        run: uv sync --all-extras --locked
+
+      - name: Lint (ruff)
+        if: contains(steps.ecosystem.outputs.language, 'python')
+        run: uv run ruff check .
+
+      - name: Run Python tests
+        if: contains(steps.ecosystem.outputs.language, 'python')
+        run: uv run pytest tests/ -v --tb=short
+
+      # ── Node.js path ─────────────────────────────────────────────────────────
+      - name: Set up Node.js
+        if: contains(steps.ecosystem.outputs.language, 'node')
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install Node dependencies
+        if: contains(steps.ecosystem.outputs.language, 'node')
+        run: npm ci
+
+      - name: Lint (eslint / tsc)
+        if: contains(steps.ecosystem.outputs.language, 'node')
+        run: npm run lint --if-present
+
+      - name: Run Node tests
+        if: contains(steps.ecosystem.outputs.language, 'node')
+        run: npm test --if-present
+
+      # ── Ecosystem health check (always) ──────────────────────────────────────
+      - name: Ecosystem health check
+        run: python3 scripts/health_check.py

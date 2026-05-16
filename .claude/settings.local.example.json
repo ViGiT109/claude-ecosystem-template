@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+
+  "// ABOUT THIS FILE": "Copy to .claude/settings.local.json for user-specific overrides.",
+  "// NOTE": "settings.local.json is gitignored — safe for personal paths and tokens.",
+
+  "permissions": {
+    "allow": [
+      "// Add project-specific tool permissions here that are not in settings.json",
+      "// Example: Bash(npm run *:*)"
+    ]
+  },
+
+  "env": {
+    "// EXAMPLE": "Override env vars for your local machine",
+    "// PYTHONPATH": "."
+  }
+}

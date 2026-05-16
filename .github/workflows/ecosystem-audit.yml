@@ -1,0 +1,51 @@
+name: Ecosystem Audit Freshness
+
+on:
+  schedule:
+    # Run every Monday at 09:00 UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  audit-freshness:
+    name: Check audit_history.jsonl freshness
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check audit history freshness
+        id: freshness
+        run: |
+          AUDIT_FILE=".memory/audit_history.jsonl"
+          MAX_AGE_DAYS=14
+
+          if [ ! -f "$AUDIT_FILE" ]; then
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+            echo "reason=audit_history.jsonl does not exist" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Get last modified time in seconds since epoch
+          MTIME=$(stat -c %Y "$AUDIT_FILE" 2>/dev/null || stat -f %m "$AUDIT_FILE")
+          NOW=$(date +%s)
+          AGE_DAYS=$(( (NOW - MTIME) / 86400 ))
+
+          if [ "$AGE_DAYS" -gt "$MAX_AGE_DAYS" ]; then
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+            echo "reason=Last audit was ${AGE_DAYS} days ago (limit: ${MAX_AGE_DAYS})" >> "$GITHUB_OUTPUT"
+          else
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+            echo "reason=Last audit was ${AGE_DAYS} days ago" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Report audit status
+        run: |
+          echo "Audit freshness: ${{ steps.freshness.outputs.reason }}"
+          if [ "${{ steps.freshness.outputs.stale }}" = "true" ]; then
+            echo "⚠️  AUDIT DEBT: Ecosystem audit is stale."
+            echo "   Run /audit_ecosystem in Claude Code and commit the result."
+            exit 1
+          else
+            echo "✅ Ecosystem audit is current."
+          fi
