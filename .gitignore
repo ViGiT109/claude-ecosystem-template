@@ -53,5 +53,7 @@ desktop.ini
 .mcp_venv/
 
 # ChromaDB vector store (binary, regenerates from .memory/lessons.md)
-.memory/chroma_db/
-.memory/models/
+.memory/chroma_db/*
+!.memory/chroma_db/.gitkeep
+.memory/models/*
+!.memory/models/.gitkeep
