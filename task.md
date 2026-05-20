@@ -1,6 +1,8 @@
-# Task: v2.0.0 Phase 0 — Audit + Plan + Spec (COMPLETE)
+# Task: v2.0.0 Phase 1 — Critical Fixes (PR #1)
 
-**Status:** Phase 0 closed. Phase 1 (PR #1) to be opened in **new session** for clean context window.
+**Branch:** `feat/v2.0.0-phase-1-critical-fixes`
+**Spec:** [docs/specs/2026-05-21-production-readiness.md](docs/specs/2026-05-21-production-readiness.md) §Phase 1
+**Goal:** unblock cross-platform cloning (macOS/Linux) + introduce AGENTS.md source-of-truth + bootstrap guard.
 
 ## Legend
 - `[ ]` — not started (blocks commit)
@@ -8,26 +10,40 @@
 - `[x]` — completed
 - `[-]` — skipped / not applicable
 
-## Phase 0 Steps (this session)
+## Steps
 
-- [x] Deep ecosystem audit (82/100 maturity score)
-- [x] Web research — 2026 best practices benchmark
-- [x] 17 architectural decisions agreed via AskUserQuestion (3 rounds)
-- [x] Plan written to `~/.claude/plans/parallel-leaping-rainbow.md`
-- [x] Spec written to `docs/specs/2026-05-21-production-readiness.md`
-- [x] Context Window Awareness factor added to plan/spec (decision #1a)
-- [x] activeContext.md updated for session handoff
-- [x] task.md reset for clean Phase 0 commit
+### 1.1 — Rename `.claude/Skills/` → `.claude/skills/`
+- [x] Two-step git mv via temp dir (Windows case-insensitive workaround)
+- [-] Update case-sensitive path references — N/A (no `.claude/Skills/` paths in code; prose mentions use lowercase inline path)
+- [x] Verify `git ls-files .claude/skills` returns lowercase paths
+- [x] Commit: `refactor(skills): rename Skills/ → skills/ for case-sensitive FS`
 
-## Next session — what to do
+### 1.2 — Delete generic skills (deep-research, triz, problem-solving)
+- [ ] `git rm -r .claude/skills/{deep-research,triz,problem-solving}`
+- [ ] Verify no remaining references (Grep)
+- [ ] Commit: `chore(skills): remove generic skills (deferred to Anthropic marketplace)`
 
-> **Open new Claude Code session, then:**
->
-> 1. `/new_session` (auto-loads activeContext, lessons, git status)
-> 2. Tell me: **«продолжаем работу над v2.0.0 — начинаем PR #1»**
-> 3. `/model claude-sonnet-4-6` (Phase 1 is mechanical)
-> 4. I'll replace this file with PR #1 step-list and start work.
+### 1.3 — Bootstrap guard in `session_start.py`
+- [ ] Add `check_bootstrap_done()` scanning `README.md`, `CLAUDE.md`, `.ecosystem.toml` for `${PROJECT_NAME}` placeholder
+- [ ] If found → print 🔴 BOOTSTRAP REQUIRED block + early return (skip normal context output)
+- [ ] Smoke test: temporarily reintroduce a placeholder → hook fires
+- [ ] Commit: `feat(hooks): block session with 🔴 BOOTSTRAP REQUIRED on unprocessed placeholders`
 
-## Why new session?
+### 1.4 — AGENTS.md source-of-truth + sync system
+- [ ] Create `AGENTS.md` from current `CLAUDE.md` (with universal terminology: «AI assistant» / «agent» instead of «Claude»)
+- [ ] Create `.agents/claude-overrides.md` (Claude-specific sections, may start empty)
+- [ ] Write `scripts/sync_agents_md.py` (reads AGENTS.md + overrides → writes CLAUDE.md with `<!-- AUTO-GENERATED -->` header)
+- [ ] Regenerate `CLAUDE.md` via the script
+- [ ] Add `agents-md-sync` hook to `.pre-commit-config.yaml`
+- [ ] Smoke test: edit AGENTS.md without re-sync → pre-commit blocks
+- [ ] Commit: `feat(agents): AGENTS.md as source-of-truth + sync script + pre-commit guard`
 
-This session's context is at ~185K. Sonnet 4.6 has a 200K window — switching now would hit the wall immediately. Fresh session = 200K available = clean run through PR #1.
+### Verification (PR #1 acceptance)
+- [ ] `git ls-files .claude/skills` returns lowercase paths
+- [ ] `python scripts/sync_agents_md.py --stdout | diff - CLAUDE.md` → empty
+- [ ] Simulated bootstrap guard: hook prints 🔴 block when `${PROJECT_NAME}` is present
+- [ ] No leftover Skills (case-sensitive) references outside intentional contexts
+
+### Wrap-up
+- [ ] Update `.memory/activeContext.md` — Phase 1 done, Phase 2 next
+- [ ] `gh pr create` against main
