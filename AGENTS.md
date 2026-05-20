@@ -1,6 +1,3 @@
-<!-- AUTO-GENERATED from AGENTS.md by scripts/sync_agents_md.py — DO NOT EDIT -->
-<!-- To change these rules edit AGENTS.md (universal) or .agents/claude-overrides.md (Claude-specific), then run: python scripts/sync_agents_md.py -->
-
 # ${PROJECT_NAME} — AI Agent Rules
 
 > **This file is the primary source of rules for AI agents working in this repository.**

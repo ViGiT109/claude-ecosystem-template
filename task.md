@@ -31,13 +31,13 @@
 - [x] Commit: `feat(hooks): block session with 🔴 BOOTSTRAP REQUIRED on unprocessed placeholders`
 
 ### 1.4 — AGENTS.md source-of-truth + sync system
-- [ ] Create `AGENTS.md` from current `CLAUDE.md` (with universal terminology: «AI assistant» / «agent» instead of «Claude»)
-- [ ] Create `.agents/claude-overrides.md` (Claude-specific sections, may start empty)
-- [ ] Write `scripts/sync_agents_md.py` (reads AGENTS.md + overrides → writes CLAUDE.md with `<!-- AUTO-GENERATED -->` header)
-- [ ] Regenerate `CLAUDE.md` via the script
-- [ ] Add `agents-md-sync` hook to `.pre-commit-config.yaml`
-- [ ] Smoke test: edit AGENTS.md without re-sync → pre-commit blocks
-- [ ] Commit: `feat(agents): AGENTS.md as source-of-truth + sync script + pre-commit guard`
+- [x] Create `AGENTS.md` from current `CLAUDE.md` (with universal terminology: «AI assistant» / «agent» instead of «Claude»)
+- [x] Create `.agents/claude-overrides.md` (Claude-specific sections, starts as empty stub)
+- [x] Write `scripts/sync_agents_md.py` (--write / --stdout / --check modes; supports overrides; emits AUTO-GENERATED header)
+- [x] Regenerate `CLAUDE.md` via the script
+- [x] Add `agents-md-sync` hook to `.pre-commit-config.yaml`
+- [x] Smoke test: edit AGENTS.md without re-sync → pre-commit hook Failed; post-revert → Passed
+- [x] Commit: `feat(agents): AGENTS.md as source-of-truth + sync script + pre-commit guard`
 
 ### Verification (PR #1 acceptance)
 - [ ] `git ls-files .claude/skills` returns lowercase paths
