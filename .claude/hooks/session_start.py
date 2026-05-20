@@ -2,6 +2,8 @@
 """SessionStart hook: injects current project focus into Claude's context.
 
 Outputs:
+- 🔴 BOOTSTRAP REQUIRED block when the template hasn't been initialised
+  (placeholder `${PROJECT_NAME}` still present in README.md / CLAUDE.md / .ecosystem.toml)
 - First lines of `.memory/activeContext.md` (current phase, sprint focus)
 - Freshness of `.memory/lessons.md` (last-updated date)
 - Uncommitted git changes status
@@ -17,6 +19,44 @@ import sys
 from pathlib import Path
 
 PROJECT_DIR = Path(os.environ.get("CLAUDE_PROJECT_DIR", "."))
+PLACEHOLDER = "${PROJECT_NAME}"
+BOOTSTRAP_SCAN_FILES = ("README.md", "CLAUDE.md", ".ecosystem.toml")
+
+
+def check_bootstrap_done() -> bool:
+    """Return True if the user needs to run bootstrap (placeholders unresolved).
+
+    Skipped when `TEMPLATE_README.md` is present — that means we are *inside*
+    the template repo itself, not a downstream clone. `bootstrap.ps1` deletes
+    TEMPLATE_README.md as part of its first-run sequence.
+    """
+    if (PROJECT_DIR / "TEMPLATE_README.md").exists():
+        return False
+
+    flagged: list[str] = []
+    for name in BOOTSTRAP_SCAN_FILES:
+        path = PROJECT_DIR / name
+        if not path.exists():
+            continue
+        try:
+            if PLACEHOLDER in path.read_text(encoding="utf-8"):
+                flagged.append(name)
+        except OSError:
+            continue
+    if not flagged:
+        return False
+
+    print("# 🔴 BOOTSTRAP REQUIRED")
+    print()
+    print(f"Unresolved `{PLACEHOLDER}` placeholder(s) detected in:")
+    for name in flagged:
+        print(f"  - {name}")
+    print()
+    print("**Run `.\\bootstrap.ps1` (Windows) or `./bootstrap.sh` before continuing.**")
+    print()
+    print("Until bootstrap completes the project is not initialised — paths, names,")
+    print("and language-specific scaffolding are still in template form.")
+    return True
 
 
 def emit_active_context() -> None:
@@ -73,6 +113,10 @@ def emit_git_status() -> None:
 
 
 def main() -> int:
+    # Bootstrap guard runs first and short-circuits the normal session preamble.
+    if check_bootstrap_done():
+        return 0
+
     print("# 🚀 Project context (auto-injected by SessionStart hook)")
     print()
     emit_active_context()

@@ -24,10 +24,11 @@
 - [x] Commit: `chore(skills): remove generic skills (deferred to Anthropic marketplace)`
 
 ### 1.3 — Bootstrap guard in `session_start.py`
-- [ ] Add `check_bootstrap_done()` scanning `README.md`, `CLAUDE.md`, `.ecosystem.toml` for `${PROJECT_NAME}` placeholder
-- [ ] If found → print 🔴 BOOTSTRAP REQUIRED block + early return (skip normal context output)
-- [ ] Smoke test: temporarily reintroduce a placeholder → hook fires
-- [ ] Commit: `feat(hooks): block session with 🔴 BOOTSTRAP REQUIRED on unprocessed placeholders`
+- [x] Add `check_bootstrap_done()` scanning `README.md`, `CLAUDE.md`, `.ecosystem.toml` for `${PROJECT_NAME}` placeholder
+- [x] If found → print 🔴 BOOTSTRAP REQUIRED block + early return (skip normal context output)
+- [x] Skip guard in template repo itself via `TEMPLATE_README.md` sentinel (bootstrap.ps1 removes it)
+- [x] Smoke test: 3-scenario check (template/downstream/restored) — all pass
+- [x] Commit: `feat(hooks): block session with 🔴 BOOTSTRAP REQUIRED on unprocessed placeholders`
 
 ### 1.4 — AGENTS.md source-of-truth + sync system
 - [ ] Create `AGENTS.md` from current `CLAUDE.md` (with universal terminology: «AI assistant» / «agent» instead of «Claude»)
