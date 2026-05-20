@@ -19,9 +19,9 @@
 - [x] Commit: `refactor(skills): rename Skills/ → skills/ for case-sensitive FS`
 
 ### 1.2 — Delete generic skills (deep-research, triz, problem-solving)
-- [ ] `git rm -r .claude/skills/{deep-research,triz,problem-solving}`
-- [ ] Verify no remaining references (Grep)
-- [ ] Commit: `chore(skills): remove generic skills (deferred to Anthropic marketplace)`
+- [x] `git rm -r .claude/skills/{deep-research,triz,problem-solving}`
+- [x] Verify no remaining references (Grep) — only in task.md and spec, intentional
+- [x] Commit: `chore(skills): remove generic skills (deferred to Anthropic marketplace)`
 
 ### 1.3 — Bootstrap guard in `session_start.py`
 - [ ] Add `check_bootstrap_done()` scanning `README.md`, `CLAUDE.md`, `.ecosystem.toml` for `${PROJECT_NAME}` placeholder
