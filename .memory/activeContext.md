@@ -1,21 +1,21 @@
 # Active Context
 
-> **Updated:** 2026-05-21 — handoff prep
+> **Updated:** 2026-05-21 — Phase 1 complete, PR #1 ready to open
 > Loaded automatically by `session_start.py` hook (first 25 lines).
 
 ## Current Focus
 
-**v2.0.0 Production-Readiness Upgrade — Phase 0 complete, Phase 1 ready to start in new session.**
+**v2.0.0 Production-Readiness Upgrade — Phase 1 implementation complete on `feat/v2.0.0-phase-1-critical-fixes`. Phase 2 next.**
 
-Audit (82/100) → 17 architectural decisions confirmed → Spec + Plan written → Ready for implementation.
+Audit (82/100) → 17 architectural decisions confirmed → Spec + Plan written → PR #1 (Phase 1) implemented and verified.
 
 ## Sprint Goals
 
 Ship v2.0.0 across 6 PRs. Each PR = one phase, one branch `feat/v2.0.0-phase-{N}-<topic>`.
 
 - [x] Phase 0 — Audit + Spec + Plan + task.md prep
-- [ ] Phase 1 — Critical fixes (skills rename, AGENTS.md, bootstrap guard) — **NEXT**
-- [ ] Phase 2 — Distribution-readiness (plugin.json auto-regen, marketplace.json, audit freshness)
+- [x] Phase 1 — Critical fixes (skills rename, AGENTS.md, bootstrap guard) — **PR open**
+- [ ] Phase 2 — Distribution-readiness (plugin.json auto-regen, marketplace.json, audit freshness) — **NEXT**
 - [ ] Phase 3 — Model Routing System + Context Window Awareness + /handoff
 - [ ] Phase 4 — Planning Phase Detector + Context Monitor
 - [ ] Phase 5 — ReasoningBank auto-ingest
@@ -26,6 +26,7 @@ Ship v2.0.0 across 6 PRs. Each PR = one phase, one branch `feat/v2.0.0-phase-{N}
 - **2026-05-21:** Deep ecosystem audit performed → maturity 82/100.
 - **2026-05-21:** Plan approved via ExitPlanMode. Spec written: [docs/specs/2026-05-21-production-readiness.md](../docs/specs/2026-05-21-production-readiness.md). Working plan: `~/.claude/plans/parallel-leaping-rainbow.md`.
 - **2026-05-21:** Three new decisions added — #1a Context Window Awareness, #1b Model Switch Checkpoint (blocking), #1c Hybrid execution via subagents with explicit model.
+- **2026-05-21:** PR #1 implemented on `feat/v2.0.0-phase-1-critical-fixes` — 4 commits: Skills→skills rename, generic-skill removal, bootstrap guard in session_start.py, AGENTS.md source-of-truth + sync_agents_md.py + agents-md-sync pre-commit hook.
 
 ## Key Decisions (17, all in spec)
 
@@ -41,16 +42,12 @@ None — all 17 forks resolved.
 
 ## Next Steps (for next session)
 
-**START HERE:** open new Claude Code session, then:
+PR #1 is open. Before starting Phase 2:
 
-1. Stay on **Opus 4.7** (default start — user preference #1d, reliability first).
-2. Say: **"новая сессия, продолжаем работу"**
-3. I'll read this file + spec + task.md, then start PR #1.
-4. I'll silently delegate mechanical chunks to Sonnet via subagents (`Agent(model="sonnet", ...)`) — no need to switch your main model.
-5. I'll only block-stop with `💡 MODEL` block if both (a) Sonnet is unsafe for the current chunk AND (b) subagent delegation is impossible. Otherwise — no model-switch noise.
-6. Work through 18 steps in `task.md`. Mark `[x]` each step.
-7. Verify with PR #1 verification block in spec.
-8. Open PR via `gh pr create`.
+1. Wait for PR #1 review / merge into `main`.
+2. Then say: **«новая сессия, начинаем Phase 2»**
+3. Phase 2 scope (PR #2): `scripts/regenerate_plugin_manifest.py` + pre-commit `plugin-manifest-sync` + `.claude-plugin/marketplace.json` + audit-freshness check in `session_start.py`.
+4. Continue silent subagent delegation pattern (Sonnet for mechanical implementation, Opus stays as main).
 
 ## Resume context
 

@@ -40,11 +40,12 @@
 - [x] Commit: `feat(agents): AGENTS.md as source-of-truth + sync script + pre-commit guard`
 
 ### Verification (PR #1 acceptance)
-- [ ] `git ls-files .claude/skills` returns lowercase paths
-- [ ] `python scripts/sync_agents_md.py --stdout | diff - CLAUDE.md` → empty
-- [ ] Simulated bootstrap guard: hook prints 🔴 block when `${PROJECT_NAME}` is present
-- [ ] No leftover Skills (case-sensitive) references outside intentional contexts
+- [x] `git ls-files .claude/skills` returns lowercase paths
+- [x] `python scripts/sync_agents_md.py --check` → exit 0 (no drift)
+- [x] Simulated bootstrap guard: hook prints 🔴 block when `${PROJECT_NAME}` is present
+- [x] No leftover `.claude/Skills/` (case-sensitive) path references outside `task.md` / spec
+- [x] `pre-commit run --all-files` → `agents-md-sync` Passed; `task-guardrail` correctly flags own list; ruff Skipped (no Python source yet)
 
 ### Wrap-up
-- [ ] Update `.memory/activeContext.md` — Phase 1 done, Phase 2 next
-- [ ] `gh pr create` against main
+- [x] Update `.memory/activeContext.md` — Phase 1 done, Phase 2 next
+- [-] `gh pr create` against main — **N/A**: no `origin` remote configured + `gh` CLI absent. Branch is local-only. User decides: (a) add GitHub remote + push + open PR, (b) merge branch into main locally, (c) keep branch for review without PR.
