@@ -21,3 +21,4 @@ Example: `2026-05-17-user-authentication.md`
 | Spec | Status | Date |
 |---|---|---|
 | [v2.0.0 Production-Readiness Upgrade](2026-05-21-production-readiness.md) | Implemented | 2026-05-21 |
+| [v2.1 Hybrid Retrieval + Trajectory Ingest + Downstream Distribution](2026-05-22-v2.1-reasoning-bank-distribution.md) | Draft | 2026-05-22 |
