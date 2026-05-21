@@ -1,5 +1,6 @@
 ---
 description: Extract a lesson from an error and record it in .memory/lessons.md (ReasoningBank format)
+model: opus
 ---
 
 # Extract Lesson from Error

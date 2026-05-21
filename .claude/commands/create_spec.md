@@ -1,5 +1,6 @@
 ---
 description: Create a specification before implementing a complex task (Spec-Driven Development)
+model: opus
 ---
 
 # Create Specification

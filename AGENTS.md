@@ -35,6 +35,7 @@ Detailed rules are split by concern. Read on demand:
 | **Common** | `.agents/rules/common.md` | Any code change |
 | **Code Quality** | `.agents/rules/code-quality.md` | Writing or reviewing code |
 | **Git** | `.agents/rules/git.md` | Commits and releases |
+| **Model Policy** | `.agents/rules/model-policy.md` | Choosing a model; emitting `💡 MODEL` / `🔄 SESSION` blocks |
 | **Coding Conventions** | `.agents/context/coding-conventions.md` | Full standards reference |
 | **Changelog / Log** | `.agents/context/changelog-rules.md` | Releases, CHANGELOG updates |
 

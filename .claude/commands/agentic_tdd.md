@@ -1,5 +1,6 @@
 ---
 description: Run the Agentic TDD cycle (Test-Driven Development) for new features or bug fixes
+model: inherit
 ---
 
 # Agentic TDD Workflow

@@ -1,6 +1,7 @@
 ---
 name: initialize_project
 description: Full project initialization and ecosystem readiness check. Triggers on "инициализация экосистемы", "initialize ecosystem", "ecosystem init", "init project", "setup project", "первый запуск".
+model: opus
 ---
 
 You are running the **ecosystem initialization** workflow. Complete all phases in order without stopping for confirmation unless a critical ambiguity requires it.

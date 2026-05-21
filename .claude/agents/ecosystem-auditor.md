@@ -2,7 +2,7 @@
 name: ecosystem-auditor
 description: Behavioral audit of a coding session — did all ecosystem mechanisms work, were rules violated, what lessons should be captured. Use PROACTIVELY in a dedicated session (cross-session audit) or at user's explicit request ("audit the ecosystem", "review my last session"). Reads git history and project files; does NOT modify code.
 tools: Read, Grep, Glob, Bash
-model: inherit
+model: opus
 memory: project
 ---
 

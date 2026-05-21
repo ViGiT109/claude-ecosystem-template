@@ -1,5 +1,6 @@
 ---
 description: Commit changes and (optionally) create a new release tag
+model: sonnet
 ---
 
 # Commit and Release

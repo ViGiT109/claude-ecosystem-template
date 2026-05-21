@@ -1,5 +1,6 @@
 ---
 description: Deep behavioural audit of the AI ecosystem for a session. Run at user request (end of session or in a dedicated dialog).
+model: opus
 ---
 
 # Ecosystem Audit

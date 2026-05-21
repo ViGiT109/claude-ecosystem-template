@@ -1,5 +1,6 @@
 ---
 description: Set up the project environment from scratch on a new machine
+model: sonnet
 ---
 
 # Environment Setup

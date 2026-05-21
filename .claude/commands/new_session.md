@@ -1,5 +1,6 @@
 ---
 description: Start a new project session with Progressive Context Loading
+model: inherit
 ---
 
 # New Session — Progressive Context Loading
