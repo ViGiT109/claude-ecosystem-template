@@ -58,7 +58,8 @@ Per [.memory/activeContext.md](.memory/activeContext.md) §model-policy: main th
 
 ### 3.7 — Wrap-up
 - [x] Update `.memory/activeContext.md` — Phase 3 complete, Phase 4 next
-- [/] Commit via `/commit_and_release` (NO `--no-verify`)
+- [x] Commit `feat(model): v2.0.0 Phase 3 — model routing system` (89f9ced) — NO `--no-verify`
+- [-] **Infra note:** `.git/hooks/pre-commit` not installed locally; pre-commit framework runs only via manual `pre-commit run`. All hooks (`agents-md-sync`, `plugin-manifest-sync`, `task-guardrail`) pass when invoked directly. Filed as user-decision (run `pre-commit install` to close the gap; not a code change).
 
 ## Non-goals (this PR)
 - Planning Phase Detector hook (`planning_hint.py`) — Phase 4
