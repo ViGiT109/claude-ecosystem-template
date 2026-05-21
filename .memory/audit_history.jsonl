@@ -1,0 +1,1 @@
+{"event": "reasoning_bank_ingest", "timestamp": "2026-05-21T12:23:37Z", "status": "skipped", "returncode": 1, "stdout_tail": "", "stderr_tail": "❌ Error: 'chromadb' not found. Install it first: pip install chromadb", "duration_s": 0.06}

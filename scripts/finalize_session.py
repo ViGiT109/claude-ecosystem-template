@@ -24,6 +24,9 @@ from datetime import UTC, datetime
 CONTEXT_FILE = ".memory/activeContext.md"
 LESSONS_FILE = ".memory/lessons.md"
 TRAJECTORIES_FILE = ".memory/session_trajectories.jsonl"
+AUDIT_HISTORY_FILE = ".memory/audit_history.jsonl"
+REASONING_BANK_SCRIPT = "scripts/reasoning_bank.py"
+REASONING_BANK_TIMEOUT_S = 30
 
 
 def check_context_freshness() -> None:
@@ -173,6 +176,79 @@ def collect_session_metrics() -> dict:
     return metrics
 
 
+def _tail(text: str, n: int = 5) -> str:
+    """Return the last n non-empty lines of `text`, joined with \\n. Truncates to 500 chars."""
+    if not text:
+        return ""
+    lines = [ln for ln in text.splitlines() if ln.strip()]
+    return "\n".join(lines[-n:])[:500]
+
+
+def ingest_reasoning_bank() -> dict:
+    """Run `reasoning_bank.py ingest_lessons` as a bounded subprocess; log status to audit_history.
+
+    Non-blocking by design: ChromaDB may be absent, the script may be slow, the
+    user may have nothing to ingest yet. Any of these outcomes is logged but
+    never raises into the parent finalize_session.
+
+    Status values:
+        - "ok"      — subprocess exit 0
+        - "skipped" — subprocess exit non-zero (e.g. chromadb missing)
+        - "timeout" — subprocess.TimeoutExpired
+        - "error"   — any other exception while invoking
+    """
+    started = time.time()
+    entry: dict = {
+        "event": "reasoning_bank_ingest",
+        "timestamp": datetime.now(tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+
+    try:
+        result = subprocess.run(
+            [sys.executable, REASONING_BANK_SCRIPT, "ingest_lessons"],
+            capture_output=True,
+            text=True,
+            timeout=REASONING_BANK_TIMEOUT_S,
+            check=False,
+        )
+        entry["status"] = "ok" if result.returncode == 0 else "skipped"
+        entry["returncode"] = result.returncode
+        entry["stdout_tail"] = _tail(result.stdout)
+        entry["stderr_tail"] = _tail(result.stderr)
+    except subprocess.TimeoutExpired:
+        entry["status"] = "timeout"
+        entry["returncode"] = None
+        entry["stdout_tail"] = ""
+        entry["stderr_tail"] = f"timed out after {REASONING_BANK_TIMEOUT_S}s"
+    except Exception as e:
+        entry["status"] = "error"
+        entry["returncode"] = None
+        entry["stdout_tail"] = ""
+        entry["stderr_tail"] = f"{type(e).__name__}: {e}"
+
+    entry["duration_s"] = round(time.time() - started, 2)
+
+    try:
+        with open(AUDIT_HISTORY_FILE, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except OSError as e:
+        print(f"⚠️  Could not write reasoning_bank status to {AUDIT_HISTORY_FILE}: {e}")
+
+    status = entry["status"]
+    dur = entry["duration_s"]
+    if status == "ok":
+        print(f"\n📚 ReasoningBank ingest: ok ({dur}s)")
+    elif status == "skipped":
+        hint = entry["stderr_tail"].splitlines()[0] if entry["stderr_tail"] else "non-zero exit"
+        print(f"\n📚 ReasoningBank ingest: skipped — {hint}")
+    elif status == "timeout":
+        print(f"\n📚 ReasoningBank ingest: timeout (>{REASONING_BANK_TIMEOUT_S}s) — skipping")
+    else:
+        print(f"\n📚 ReasoningBank ingest: error — {entry['stderr_tail']}")
+
+    return entry
+
+
 def record_session_trajectory(commit_msg: str, metrics: dict) -> None:
     """Append session trajectory to JSONL (ReasoningBank Phase 1)."""
     trajectory = {
@@ -305,6 +381,7 @@ def main() -> None:
     subprocess.run(["git", "add", "."], check=True)
 
     metrics = collect_session_metrics()
+    ingest_reasoning_bank()
     record_session_trajectory(commit_msg, metrics)
     git_commit_push(commit_msg)
 
