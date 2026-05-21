@@ -5,22 +5,26 @@
 
 ## What this template is
 
-A clean, reusable starting point for any software project that uses Claude Code as its AI assistant.
+A clean, reusable starting point for any software project that uses Claude Code (or any
+[AGENTS.md](https://github.com/openai/codex)-compatible agent: Codex, Cursor, Windsurf, Aider) as its AI assistant.
 It bundles a mature AI governance ecosystem ported from a production project (v6 after 18 months).
 
 ### What you get
 
 - **Progressive Disclosure** — context loaded in 3 tiers (ALWAYS/AUTO/ON-DEMAND)
-- **Memory Bank** — 7 persistent markdown files (activeContext, lessons, progress, brief, patterns, tech, CC state)
+- **Memory Bank** — persistent markdown files in `.memory/` (activeContext, lessons, progress, brief, patterns, tech, API reference)
 - **ReasoningBank** — ChromaDB-backed semantic retrieval of past lessons
-- **Deterministic Hooks** — session_start, block_no_verify, stop_audit (Python, no Bash dependency)
+- **Deterministic Hooks** — `session_start`, `block_no_verify`, `stop_audit`, `planning_hint`, `statusline` (Python, no Bash dependency)
 - **Self-Improvement Loop** — error → lesson → rule → guardrail
-- **7 Slash Commands** — new_session, audit_ecosystem, extract_lesson, create_spec, agentic_tdd, commit_and_release, setup_environment
-- **Subagent** — ecosystem-auditor (cross-session behavioral audit in isolated context)
-- **2 Skills** — clean-workspace, deploy-fresh
-- **Modular Rules** — common, git, code-quality + coding-conventions, changelog-rules
+- **Slash Commands** — `/new_session`, `/audit_ecosystem`, `/extract_lesson`, `/create_spec`, `/agentic_tdd`, `/commit_and_release`, `/setup_environment`, `/model_check`, `/handoff`
+- **Subagents** — `ecosystem-auditor`, `code-reviewer`, `researcher` (each runs in isolated context with its own model)
+- **Skills** — `clean-workspace`, `deploy-fresh`
+- **Modular Rules** — common, git, code-quality, model-policy + coding-conventions, changelog-rules
 - **CI Workflows** — stack-auto-detecting lint + test, ecosystem audit freshness check
 - **Bootstrap script** — one-run personalization
+
+> **Want the rationale, not just the feature list?** See [`docs/template-design.md`](docs/template-design.md) — explains
+> *why* the ecosystem is shaped this way and what was learned over 18 months of iteration.
 
 ---
 
@@ -66,10 +70,15 @@ Bootstrap is idempotent: re-running detects already-substituted markers and asks
 .claude/
 ├── commands/        # Slash commands (/.md → /command-name in Claude Code)
 ├── agents/          # Subagents (routed by description match)
+│   ├── ecosystem-auditor.md
+│   ├── code-reviewer.md
+│   └── researcher.md
 ├── hooks/           # Lifecycle hooks (Python)
-│   ├── _run.py      # Hook launcher — finds Python without requiring Bash
+│   ├── _run.py            # Hook launcher — finds Python without requiring Bash
 │   ├── session_start.py
 │   ├── block_no_verify.py
+│   ├── planning_hint.py
+│   ├── statusline.py
 │   └── stop_audit.py
 ├── skills/          # Skill packs (SKILL.md frontmatter)
 │   ├── clean-workspace/
@@ -138,8 +147,9 @@ After `bootstrap.ps1` runs:
 
 ---
 
-## Maturity history
+## Design rationale
 
-This template is derived from Bingo7 v6 (Python ML/trading project, ~85/100 ecosystem maturity
-after 7 major iterations over 18 months). Domain-specific code was stripped; generic patterns
-and improvements were applied immediately.
+The architecture story (why three memory tiers, why hooks-in-Python, why AGENTS.md is canonical,
+why default to Opus) lives in [`docs/template-design.md`](docs/template-design.md). That doc survives
+`bootstrap.ps1` and stays in downstream projects, so the rationale isn't lost when the template
+repo is cloned away.

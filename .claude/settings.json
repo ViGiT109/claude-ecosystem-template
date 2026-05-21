@@ -2,6 +2,10 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "autocompleteHistoryLimit": 0,
   "outputStyle": "default",
+  "statusLine": {
+    "type": "command",
+    "command": "python .claude/hooks/_run.py .claude/hooks/statusline.py"
+  },
   "permissions": {
     "allow": [
       "Bash(git status:*)",

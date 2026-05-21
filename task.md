@@ -1,8 +1,8 @@
-# Task: v2.0.0 Phase 6a — Mechanical Cleanup Bundle (PR #6a)
+# Task: v2.0.0 Phase 6b — Design Bundle (PR #6b)
 
-**Branch:** `feat/v2.0.0-phase-6a-mechanical-cleanup` (off Phase 5)
+**Branch:** `feat/v2.0.0-phase-6b-design-bundle` (off Phase 6a)
 **Spec:** [docs/specs/2026-05-21-production-readiness.md](docs/specs/2026-05-21-production-readiness.md) §Phase 6
-**Goal:** PR #6a — config/file mechanics only. Design work (subagents, statusline, docs) is split to PR #6b.
+**Goal:** Design-heavy second half of the original Phase 6 — new subagents, statusline hook, ADR worked example, design-rationale doc.
 
 ## Legend
 - `[ ]` — not started (blocks commit)
@@ -10,44 +10,34 @@
 - `[x]` — completed
 - `[-]` — skipped / not applicable
 
-## Execution pattern
-Pure Sonnet-class mechanical edits — main thread handles inline, no subagent delegation.
-
 ## Steps
 
-### 6.1 — File hygiene
-- [x] **6.1a** Remove `scripts/monitor_context.sh` (superseded by `session_start.py` context monitor from PR #4)
-- [x] **6.1b** `git mv .memory/claude_code_state.md .memory/api_reference_hooks.md` (it's an API snapshot, not project state)
-- [x] **6.1c** Update stale refs in `TEMPLATE_README.md` (lines 95 + 108): drop `monitor_context.py` entry, rename `claude_code_state.md` → `api_reference_hooks.md`. Also update the file's own heading to match new name.
+### 6.2 — Subagents (Opus design)
+- [x] **6.2a** `.claude/agents/code-reviewer.md` — `model: opus`, `tools: Read, Grep, Glob, Bash`. Use for thorough, independent reviews of staged/diff'd changes. System prompt: security focus, correctness, style, no commits. Mirror frontmatter shape of `ecosystem-auditor.md`.
+- [x] **6.2b** `.claude/agents/researcher.md` — `model: sonnet`, `tools: Read, Grep, Glob, WebFetch, WebSearch`. Use for open-ended investigation that should not burn main-thread context. System prompt: scope discipline, citation hygiene, "report don't act".
 
-### 6.4 — Explicit outputStyle
-- [x] Add top-level `"outputStyle": "default"` to `.claude/settings.json` (explicit > implicit; future readers see the chosen style).
+### 6.3 — Statusline hook
+- [x] **6.3a** `.claude/hooks/statusline.py` — reads JSON from stdin (Claude Code statusLine API), outputs single-line `🤖 <model> | 🌿 <branch> | 📊 <ctx%>`. Graceful fallbacks (no git → no branch segment).
+- [x] **6.3b** Register in `.claude/settings.json` under top-level `statusLine` field, routed through `_run.py`.
 
-### 6.5 — pyproject scaffold audit
-- [x] Read `bootstrap.ps1` lines 185-214 (existing scaffold)
-- [x] Compare against modern PEP 621 + tooling baseline. Add only what's missing — likely candidates: `[project.optional-dependencies] dev = [...]`, `[tool.ruff]`, `[tool.black]`, `[tool.pytest.ini_options]`
-- [x] Keep the scaffold minimal — it's a starting point, not a full config
+### 6.6 — ADR + spec examples
+- [x] **6.6a** `docs/adr/001-agents-md-source-of-truth.md` — real worked example documenting why `AGENTS.md` is the source-of-truth (PR #1 decision). Uses `_template.md` structure.
+- [x] **6.6b** Update `docs/adr/README.md` index — add ADR-001 row, replace template placeholder.
+- [x] **6.6c** Update `docs/specs/README.md` index — add the production-readiness spec row.
 
-### 6.8 — .env.example enrichment
-- [x] Add `ANTHROPIC_API_KEY=` with comment (used by Anthropic SDK, optional if running purely through Claude Code CLI)
-- [x] Add `HTTPS_PROXY=` with comment (corporate networks)
-- [x] Add `CLAUDE_DISABLE_PLANNING_HINT=` with comment (set to 1 to silence planning_hint.py hook)
+### 6.7 — Design doc
+- [x] **6.7a** Create `docs/template-design.md` — captures the "why" (Progressive Disclosure, Self-Improvement Loop, hooks-in-Python rationale, 3-level memory model, maturity history). Survives bootstrap so downstream projects retain the rationale.
+- [x] **6.7b** Slim `TEMPLATE_README.md` to quickstart + directory layout; cross-reference `docs/template-design.md` for rationale. (Don't delete — bootstrap.ps1 removes it on first run anyway.)
 
 ### wrap
-- [x] Manifest + AGENTS.md sync sanity: `python scripts/regenerate_plugin_manifest.py --check` + `python scripts/sync_agents_md.py --check` (no hook/skill changes expected → clean)
-- [x] Update `.memory/activeContext.md` — Phase 6a done, Phase 6b next
-- [x] Commit `chore(cleanup): v2.0.0 Phase 6a — mechanical bundle` (NO `--no-verify`)
-
-## Out of scope (deferred to PR #6b)
-- 6.2 subagents `code-reviewer.md` + `researcher.md` (Opus design)
-- 6.3 `statusline.py` hook + settings registration
-- 6.6 ADR + spec example files
-- 6.7 `docs/template-design.md` (absorbs `TEMPLATE_README.md`)
+- [x] Manifest + AGENTS.md sync sanity (`regenerate_plugin_manifest.py --check`, `sync_agents_md.py --check`)
+- [x] Update `.memory/activeContext.md` — Phase 6b complete; remaining Phase 6 work done; ready for CHANGELOG/tag
+- [x] Commit `feat(design): v2.0.0 Phase 6b — subagents + statusline + design doc` (NO `--no-verify`)
 
 ## Acceptance
-- `scripts/monitor_context.sh` gone; `.memory/api_reference_hooks.md` present (and old name absent)
-- `TEMPLATE_README.md` references updated
-- `.claude/settings.json` declares `outputStyle: default`
-- `bootstrap.ps1` pyproject scaffold has tooling sections
-- `.env.example` has 3 new variables with comments
-- pre-commit clean (manifest + AGENTS.md sync green)
+- 2 new subagent files exist with correct frontmatter (matches `ecosystem-auditor.md` schema)
+- `statusline.py` runs to completion when fed empty stdin (no crash) and produces a sensible single-line output
+- `settings.json` registers `statusLine` and validates against the schema (still loads)
+- ADR-001 fills all template sections; both index README.md files updated
+- `docs/template-design.md` exists; `TEMPLATE_README.md` references it
+- pre-commit clean (manifest sync expects to detect new hook + 2 new agents)

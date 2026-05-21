@@ -20,4 +20,4 @@ Example: `2026-05-17-user-authentication.md`
 
 | Spec | Status | Date |
 |---|---|---|
-| *(none yet)* | | |
+| [v2.0.0 Production-Readiness Upgrade](2026-05-21-production-readiness.md) | Implemented | 2026-05-21 |

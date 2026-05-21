@@ -1,13 +1,13 @@
 # Active Context
 
-> **Updated:** 2026-05-21 — Phase 6a complete on `feat/v2.0.0-phase-6a-mechanical-cleanup`
+> **Updated:** 2026-05-21 — Phase 6b complete on `feat/v2.0.0-phase-6b-design-bundle`. **v2.0.0 implementation done.**
 > Loaded automatically by `session_start.py` hook (first 25 lines).
 
 ## Current Focus
 
-**v2.0.0 Production-Readiness Upgrade — Phase 6a (mechanical cleanup) done. Phase 6b (design bundle) next.**
+**v2.0.0 Production-Readiness Upgrade — ALL phases implemented. Next: CHANGELOG, tag `v2.0.0`, release notes.**
 
-Audit (82/100) → 17 architectural decisions confirmed → Spec + Plan written → PRs #1–#5 + #6a implemented and verified. Phase 6 split into two PRs (#6a mechanical, #6b design) per user direction.
+Audit (82/100) → 17 architectural decisions confirmed → Spec + Plan written → PRs #1–#5 + #6a + #6b all implemented and verified. Phase 6 split into two PRs (#6a mechanical, #6b design) per user direction.
 
 ## Sprint Goals
 
@@ -20,7 +20,8 @@ Ship v2.0.0 across 6 PRs. Each PR = one phase, one branch `feat/v2.0.0-phase-{N}
 - [x] Phase 4 — Planning Phase Detector + Context Monitor (planning_hint.py UserPromptSubmit hook, context-window monitor in session_start.py, AGENTS.md signaling sections) — **branch ready**
 - [x] Phase 5 — ReasoningBank auto-ingest (finalize_session.py → bounded subprocess to reasoning_bank.py ingest_lessons; status row in audit_history.jsonl) — **branch ready**
 - [x] Phase 6a — Mechanical cleanup (rm monitor_context.sh, rename claude_code_state.md → api_reference_hooks.md, outputStyle, pyproject scaffold tooling, .env.example enrichment) — **branch ready**
-- [ ] Phase 6b — Design bundle (code-reviewer + researcher subagents, statusline.py hook, ADR/spec examples, docs/template-design.md) — **NEXT**
+- [x] Phase 6b — Design bundle (code-reviewer + researcher subagents, statusline.py hook, ADR-001, docs/template-design.md, TEMPLATE_README.md slim) — **branch ready**
+- [ ] Release — CHANGELOG v2.0.0, tag `v2.0.0`, release notes
 
 ## Recent Changes
 
@@ -31,6 +32,7 @@ Ship v2.0.0 across 6 PRs. Each PR = one phase, one branch `feat/v2.0.0-phase-{N}
 - **2026-05-21:** PR #2 implemented on `feat/v2.0.0-phase-2-distribution-readiness`: `scripts/regenerate_plugin_manifest.py` + `plugin-manifest-sync` pre-commit hook (fixed drift — `initialize_project.md` was missing); `.claude-plugin/marketplace.json` scaffold; **fixed latent bug** — audit-freshness signal in `session_start.py` / `stop_audit.py` / `finalize_session.py` now filters `audit_history.jsonl` by `event == "audit_complete"` (previously masked by every-turn `stop_hook` entries); `/audit_ecosystem` Phase E now emits the marker.
 - **2026-05-21:** PR #3 implemented on `feat/v2.0.0-phase-3-model-routing`: new `.agents/rules/model-policy.md` (~155 lines, Opus design — philosophy, Always-Opus allowlist, Sonnet safe-path whitelist, Context Window Awareness, Model Switch Checkpoint, silent subagent delegation, block-format spec, cross-reference table); `model:` frontmatter added to all 8 slash-commands (audit/initialize/create_spec/extract_lesson → opus; commit_release/setup_environment → sonnet; new_session/agentic_tdd → inherit); `ecosystem-auditor.md` bumped to `model: opus`; new `/model_check` and `/handoff` commands; AGENTS.md modular-rules table extended with Model Policy row; plugin.json regenerated (now 11 commands). Execution pattern: Opus main thread for 3.1 design, Sonnet subagent silent delegation for 3.2–3.5.
 - **2026-05-21:** PR #5 implemented on `feat/v2.0.0-phase-5-reasoning-bank-ingest`: `scripts/finalize_session.py` gains `ingest_reasoning_bank()` — bounded (`timeout=30`, `check=False`, `capture_output=True`) subprocess call to `python scripts/reasoning_bank.py ingest_lessons`; status mapped to `ok` / `skipped` (non-zero exit, e.g. missing chromadb) / `timeout` (TimeoutExpired) / `error` (any other Exception); appends one row to `.memory/audit_history.jsonl` with `event: "reasoning_bank_ingest"`, `timestamp`, `status`, `returncode`, `stdout_tail`, `stderr_tail`, `duration_s`; one-line human summary printed; wired into `main()` between `collect_session_metrics()` and `record_session_trajectory()`. Smoke test on current env (no chromadb) produced `status: "skipped"`, returncode 1, full stderr captured, no SystemExit. Pre-commit guards (`agents-md-sync`, `plugin-manifest-sync`) stay green — pure script edit, no manifests touched.
+- **2026-05-21:** PR #6b implemented on `feat/v2.0.0-phase-6b-design-bundle` (design half of original Phase 6): new subagents `code-reviewer.md` (Opus — independent diff review with severity rubric, devil's-advocate phase, 4-axis analysis) + `researcher.md` (Sonnet — open-ended investigation, cite-everything, time-boxed web research, no-clarification rule); new `.claude/hooks/statusline.py` reads stdin JSON, outputs `🤖 <model> | 🌿 <branch> | 📊 <ctx%>` with graceful fallback when git/transcript absent, registered under top-level `statusLine` in `.claude/settings.json`; ADR-001 `docs/adr/001-agents-md-source-of-truth.md` as worked example documenting the AGENTS.md decision; both `docs/adr/README.md` and `docs/specs/README.md` indexes updated with real rows; new `docs/template-design.md` (~140 lines, captures Progressive Disclosure, Self-Improvement Loop, three-level memory, hooks-in-Python rationale, Opus-default policy, "what's intentionally absent") and survives bootstrap; `TEMPLATE_README.md` slimmed (refreshed feature list with current counts, cross-reference to design doc, removed "Maturity history" section absorbed by design doc, updated directory layout to include all 5 hooks + 3 subagents); `plugin.json` regenerated to register new agents + hook. Smoke tests: statusline.py outputs correct line on `{}` / empty stdin / bogus JSON / rich payload paths; both pre-commit guards green.
 - **2026-05-21:** PR #6a implemented on `feat/v2.0.0-phase-6a-mechanical-cleanup` (split from Phase 6 per user direction; design half deferred to PR #6b): removed `scripts/monitor_context.sh` (obsolete since PR #4's `session_start.py` context monitor); renamed `.memory/claude_code_state.md` → `.memory/api_reference_hooks.md` + updated heading; cleaned cross-refs in `TEMPLATE_README.md`; added explicit `"outputStyle": "default"` to `.claude/settings.json`; enriched `bootstrap.ps1` pyproject scaffold with `[project.optional-dependencies] dev = [ruff>=0.6, pytest>=8.0, pre-commit>=3.5]`, `[tool.ruff.format]`, and `addopts` for pytest; dropped deprecated `ANN101`/`ANN102` ignore (removed in ruff 0.5); `.env.example` gained `ANTHROPIC_API_KEY`, `HTTPS_PROXY`, `CLAUDE_DISABLE_PLANNING_HINT` with explanatory comments. Pre-commit guards (`agents-md-sync`, `plugin-manifest-sync`) both green — no hook/skill/command surface touched.
 - **2026-05-21:** PR #4 implemented on `feat/v2.0.0-phase-4-planning-hint`: new `.claude/hooks/planning_hint.py` (UserPromptSubmit, RU+EN regex triggers, ≥3-file-refs heuristic, `CLAUDE_DISABLE_PLANNING_HINT=1` killswitch, <20-char whitelist, emits unified 🧭 PLAN + 💡 MODEL block); context-window monitor added to `session_start.py` (transcript-size heuristic against `MODEL_WINDOWS` table, respects `CLAUDE_MODEL` env, 70%→🔄 SESSION HANDOFF, 90%→❌ critical); `.claude/settings.json` gains `UserPromptSubmit` registration (timeout 3s); AGENTS.md gains «Planning-phase signaling» and «Session handoff signaling» sections + extended deterministic-hooks table; `model-policy.md` cross-reference table trimmed of "(Phase 4)" placeholders; CLAUDE.md re-synced; plugin.json regenerated to include the new hook. Smoke tests pass: RU/EN triggers fire, heuristic fires on 4+ file refs, short prompts + killswitch + empty stdin all silent, context monitor stays silent under 70% and emits both SHRD/critical variants above thresholds.
 
@@ -48,16 +50,15 @@ None — all 17 forks resolved.
 
 ## Next Steps (for next session)
 
-PRs #1–#5 + #6a are all branched (stacked). Before starting Phase 6b:
+All implementation PRs (#1–#5, #6a, #6b) are branched (stacked). v2.0.0 implementation is **complete** — only release housekeeping remains.
 
-1. Push the stacked branches (`feat/v2.0.0-phase-1-…` through `feat/v2.0.0-phase-6a-…`) when remote is configured.
-2. Then say: **«новая сессия, начинаем Phase 6b»**
-3. Phase 6b scope (PR #6b, design bundle):
-   - 6.2 new subagents `code-reviewer.md` (Opus) + `researcher.md` (Sonnet) — Opus designs frontmatter + system prompts
-   - 6.3 `.claude/hooks/statusline.py` + register in `settings.json` (model + branch + token usage)
-   - 6.6 ADR + spec examples under `docs/adr/` and `docs/specs/`
-   - 6.7 `docs/template-design.md` (absorbs `TEMPLATE_README.md`)
-4. After Phase 6b — finalize CHANGELOG v2.0.0, tag `v2.0.0`, release notes.
+1. Push the stacked branches when remote is configured (or merge locally as fast-forwards).
+2. Then say: **«новая сессия, делаем релиз v2.0.0»**
+3. Release scope:
+   - Write `CHANGELOG.md` v2.0.0 entry (group by phase, call out breaking changes: skills rename, generic-skills removed, AGENTS.md replaces CLAUDE.md as source)
+   - Tag `v2.0.0` on the merged main / release branch
+   - Draft GitHub release notes (or `gh release create` script)
+   - Sanity-run `/audit_ecosystem` on the released state — should score ≥90/100 given the work done
 
 ## Resume context
 

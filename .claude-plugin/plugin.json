@@ -5,7 +5,9 @@
   "author": "vibev",
   "homepage": "https://github.com/vibev/claude-ecosystem-template",
   "files": [
+    ".claude/agents/code-reviewer.md",
     ".claude/agents/ecosystem-auditor.md",
+    ".claude/agents/researcher.md",
     ".claude/commands/agentic_tdd.md",
     ".claude/commands/audit_ecosystem.md",
     ".claude/commands/commit_and_release.md",
@@ -20,6 +22,7 @@
     ".claude/hooks/block_no_verify.py",
     ".claude/hooks/planning_hint.py",
     ".claude/hooks/session_start.py",
+    ".claude/hooks/statusline.py",
     ".claude/hooks/stop_audit.py",
     ".claude/skills/clean-workspace/SKILL.md",
     ".claude/skills/deploy-fresh/SKILL.md"

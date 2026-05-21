@@ -7,7 +7,8 @@
 
 | ADR | Title | Status | Date |
 |---|---|---|---|
-| [001](_template.md) | *(template — replace with first real ADR)* | Template | — |
+| [001](001-agents-md-source-of-truth.md) | AGENTS.md is the source-of-truth for AI agent rules | Accepted | 2026-05-21 |
+| [_template](_template.md) | *(template — copy when adding a new ADR)* | Template | — |
 
 ## How to add a new ADR
 
