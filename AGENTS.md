@@ -80,6 +80,42 @@ Run `/new_session` — it loads `lessons.md`, `activeContext.md`, and recent com
 > ⛔ **FORBIDDEN:** `git commit --no-verify` is banned. If a pre-commit hook is broken —
 > fix it FIRST, then commit. `--no-verify` disables all guardrails.
 
+### Planning-phase signaling
+
+When the user's prompt looks like planning or architectural work, emit a unified
+`🧭 PLAN + 💡 MODEL` block **before** the main response. The
+[`planning_hint.py`](.claude/hooks/planning_hint.py) UserPromptSubmit hook covers the
+obvious keyword cases; the agent must still emit the block by hand when the trigger
+is contextual rather than lexical (e.g. the prompt names many modules without using
+any of the trigger words).
+
+Triggers:
+- RU keywords: спроектируй, разработай, архитектур, реализуй (фич/функционал/модул),
+  рефактор, мигра, перепиши, редизайн.
+- EN keywords: design, architect, implement, refactor, migration, rewrite, redesign,
+  spec, specification, plan, planning.
+- Heuristic: ≥3 distinct file references in the prompt.
+
+Before launching large actions (>3 file edits, migrations, archival changes) — enter
+Plan Mode (`Shift+Tab`) if not already in it. The block format is defined in
+[`.agents/rules/model-policy.md`](.agents/rules/model-policy.md) §Block formats.
+
+Killswitch: `CLAUDE_DISABLE_PLANNING_HINT=1` silences the hook (the agent-side rule
+above still applies).
+
+### Session handoff signaling
+
+When the running session crosses **70%** of the active model's context window, emit a
+`🔄 SESSION HANDOFF RECOMMENDED` block. At **>90%** escalate to the ❌ critical variant.
+The [`session_start.py`](.claude/hooks/session_start.py) hook handles this on session
+resume via a transcript-size heuristic; the agent must also emit the block during a
+running session when it observes large tool result accumulation or repeated `compact`
+events.
+
+Switching models mid-session does **not** reclaim context — only a new session does.
+The agent recommends running `/handoff` first (it updates `.memory/activeContext.md`
+with resume notes), then starting a fresh session with `/new_session`.
+
 ---
 
 ## Memory Model (3 levels)
@@ -178,7 +214,8 @@ Rules that **cannot be violated** — built into the agent-tool lifecycle hooks:
 
 | Hook | Trigger | What it does |
 |---|---|---|
-| `session_start.py` | SessionStart | Injects into context: `activeContext.md` (first 25 lines), lessons.md freshness, git status; emits 🔴 BOOTSTRAP REQUIRED block when `${PROJECT_NAME}` placeholders are unresolved |
+| `session_start.py` | SessionStart | Injects into context: `activeContext.md` (first 25 lines), lessons.md freshness, audit freshness, git status; emits 🔴 BOOTSTRAP REQUIRED when `${PROJECT_NAME}` is unresolved and 🔄 SESSION HANDOFF when transcript size exceeds 70% of the active model's window |
+| `planning_hint.py` | UserPromptSubmit | Emits the unified 🧭 PLAN + 💡 MODEL block on RU/EN architectural triggers or ≥3 file references; honours `CLAUDE_DISABLE_PLANNING_HINT=1` |
 | `block_no_verify.py` | PreToolUse (Bash) | Blocks `git commit --no-verify` / `-n` (exit 2) |
 | `stop_audit.py` | Stop | Checks abandoned `[ ]` in task.md, counts uncommitted changes, logs to `audit_history.jsonl` |
 

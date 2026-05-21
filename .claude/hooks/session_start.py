@@ -25,6 +25,16 @@ PROJECT_DIR = Path(os.environ.get("CLAUDE_PROJECT_DIR", "."))
 PLACEHOLDER = "${PROJECT_NAME}"
 BOOTSTRAP_SCAN_FILES = ("README.md", "CLAUDE.md", ".ecosystem.toml")
 
+# Context window budgets per model (tokens). Used by emit_context_window_status().
+MODEL_WINDOWS = {
+    "opus": 1_000_000,
+    "sonnet": 200_000,
+    "haiku": 200_000,
+}
+DEFAULT_MODEL = "opus"
+# Rough heuristic: average ~4 bytes per token in JSONL transcripts.
+BYTES_PER_TOKEN = 4
+
 
 def check_bootstrap_done() -> bool:
     """Return True if the user needs to run bootstrap (placeholders unresolved).
@@ -143,6 +153,89 @@ def emit_audit_freshness() -> None:
     # Fresh → silent (avoid noise on every session start).
 
 
+def _read_stdin_json() -> dict:
+    """Read a JSON object from stdin without blocking on an empty pipe.
+
+    Returns `{}` on empty stdin, JSON decode errors, or any I/O error. Hooks
+    invoked outside Claude Code (e.g. smoke tests) have no stdin attached;
+    `sys.stdin.read()` returns "" in that case and we degrade gracefully.
+    """
+    try:
+        if sys.stdin.isatty():
+            return {}
+        raw = sys.stdin.read()
+    except OSError:
+        return {}
+    if not raw or not raw.strip():
+        return {}
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _resolve_model() -> str:
+    """Pick a model key from `MODEL_WINDOWS` using the `CLAUDE_MODEL` env var.
+
+    Accepts loose values like `opus`, `claude-opus-4-7`, `sonnet`, `haiku`.
+    Falls back to `DEFAULT_MODEL` when unset or unrecognised.
+    """
+    raw = (os.environ.get("CLAUDE_MODEL") or "").lower()
+    for key in MODEL_WINDOWS:
+        if key in raw:
+            return key
+    return DEFAULT_MODEL
+
+
+def _estimate_session_tokens(payload: dict) -> int | None:
+    """Estimate tokens consumed in the live session via transcript size.
+
+    Claude Code passes `transcript_path` in the SessionStart stdin payload.
+    Tokens are approximated as `file_bytes // BYTES_PER_TOKEN` — coarse but
+    monotonic, which is all the 70%/90% gate needs. Returns `None` when no
+    usable transcript path is available.
+    """
+    transcript = payload.get("transcript_path")
+    if not transcript or not isinstance(transcript, str):
+        return None
+    path = Path(transcript)
+    if not path.exists() or not path.is_file():
+        return None
+    try:
+        size = path.stat().st_size
+    except OSError:
+        return None
+    return max(0, size // BYTES_PER_TOKEN)
+
+
+def emit_context_window_status(payload: dict) -> None:
+    """Emit a 🔄 SESSION HANDOFF block when the session is past 70% of the window.
+
+    Non-blocking — purely advisory. Silent when usage is unknown or below the
+    threshold to keep new sessions clean. See `.agents/rules/model-policy.md`
+    §Context Window Awareness for the policy this enforces.
+    """
+    tokens = _estimate_session_tokens(payload)
+    if tokens is None:
+        return
+    model = _resolve_model()
+    window = MODEL_WINDOWS[model]
+    pct = (tokens / window) * 100 if window else 0
+    if pct < 70:
+        return
+
+    if pct >= 90:
+        print("## ❌ SESSION HANDOFF — CRITICAL")
+    else:
+        print("## 🔄 SESSION HANDOFF RECOMMENDED")
+    print()
+    print(f"- Estimated context: **{tokens:,} tokens** (~{pct:.0f}% of {model} {window:,})")
+    print("- Switching models mid-session does **not** reclaim context — only a new session does.")
+    print("- Suggested action: run `/handoff` → start a new session → `/new_session`.")
+    print()
+
+
 def emit_git_status() -> None:
     try:
         out = subprocess.run(
@@ -172,8 +265,11 @@ def main() -> int:
     if check_bootstrap_done():
         return 0
 
+    payload = _read_stdin_json()
+
     print("# 🚀 Project context (auto-injected by SessionStart hook)")
     print()
+    emit_context_window_status(payload)
     emit_active_context()
     emit_lessons_freshness()
     emit_audit_freshness()

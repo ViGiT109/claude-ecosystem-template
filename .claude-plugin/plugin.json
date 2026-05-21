@@ -18,6 +18,7 @@
     ".claude/commands/setup_environment.md",
     ".claude/hooks/_run.py",
     ".claude/hooks/block_no_verify.py",
+    ".claude/hooks/planning_hint.py",
     ".claude/hooks/session_start.py",
     ".claude/hooks/stop_audit.py",
     ".claude/skills/clean-workspace/SKILL.md",

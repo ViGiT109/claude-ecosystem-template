@@ -156,14 +156,14 @@ the Model Switch Checkpoint conditions above are met.
 | Subagents | Frontmatter `model:` in `.claude/agents/*.md` |
 | `/model_check` | Reads this file; emits the `💡 MODEL` block on demand |
 | `/handoff` | Emits the `🔄 SESSION` block; updates `.memory/activeContext.md` |
-| `planning_hint.py` hook (Phase 4) | Emits the `🧭 PLAN + 💡 MODEL` combined block on UserPromptSubmit triggers |
-| `session_start.py` hook (Phase 4) | Emits the `🔄 SESSION` block when ctx >70% |
+| `planning_hint.py` hook | Emits the `🧭 PLAN + 💡 MODEL` combined block on UserPromptSubmit triggers (see AGENTS.md §Planning-phase signaling) |
+| `session_start.py` hook | Emits the `🔄 SESSION` block when transcript size exceeds 70% of the active model's window (see AGENTS.md §Session handoff signaling) |
 
 ## Env killswitches
 
 | Variable | Effect |
 |---|---|
-| `CLAUDE_DISABLE_PLANNING_HINT=1` | Silences the `planning_hint.py` hook (Phase 4) — `🧭 PLAN` blocks not auto-emitted |
+| `CLAUDE_DISABLE_PLANNING_HINT=1` | Silences the `planning_hint.py` hook — `🧭 PLAN` blocks not auto-emitted by the hook (agent-side rule in AGENTS.md still applies) |
 
 The `💡 MODEL` and `🔄 SESSION` blocks have no killswitch — they are emitted only when the rules
 above are actually met, so silencing them would hide a real signal.
