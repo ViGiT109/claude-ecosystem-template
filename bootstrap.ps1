@@ -194,6 +194,13 @@ description = "$ProjectVision"
 requires-python = ">=3.11"
 dependencies = []
 
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.6",
+    "pytest>=8.0",
+    "pre-commit>=3.5",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -203,10 +210,13 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "ANN", "T20"]
-ignore = ["ANN101", "ANN102"]
+
+[tool.ruff.format]
+quote-style = "double"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-ra -q"
 "@
         Set-Content -Path (Join-Path $ProjectRoot 'pyproject.toml') -Value $pyprojectContent -Encoding utf8
         Write-Host "→ Created pyproject.toml" -ForegroundColor Green

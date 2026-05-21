@@ -1,4 +1,4 @@
-# Claude Code State — API Snapshot
+# API Reference — Claude Code Hooks
 
 > Frozen reference: Claude Code hooks and settings API as of May 2026.
 > Update only when Claude Code releases breaking changes to the hooks API.

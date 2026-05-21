@@ -92,7 +92,7 @@ Bootstrap is idempotent: re-running detects already-substituted markers and asks
 ├── projectbrief.md
 ├── systemPatterns.md
 ├── techContext.md
-├── claude_code_state.md
+├── api_reference_hooks.md
 ├── audit_history.jsonl
 ├── retrieval_logs.jsonl
 ├── session_trajectories.jsonl
@@ -105,7 +105,6 @@ scripts/
 ├── prune_memory.py         # Deduplicate lessons via cosine similarity
 ├── health_check.py         # Project health (reads .ecosystem.toml)
 ├── check_task_guardrail.py # Pre-commit: blocks on unchecked tasks
-├── monitor_context.py      # Token budget estimation
 ├── setup_mcp.ps1           # MCP server install
 └── clean_workspace.ps1     # 3-level workspace cleanup
 ```

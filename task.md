@@ -1,9 +1,8 @@
-# Task: v2.0.0 Phase 5 — ReasoningBank auto-ingest (PR #5)
+# Task: v2.0.0 Phase 6a — Mechanical Cleanup Bundle (PR #6a)
 
-**Branch:** `feat/v2.0.0-phase-5-reasoning-bank-ingest` (stacked on Phase 4)
-**Spec:** [docs/specs/2026-05-21-production-readiness.md](docs/specs/2026-05-21-production-readiness.md) §Phase 5
-**Acceptance #7:** «Финализация сессии триггерит ReasoningBank ingest; статус в `.memory/audit_history.jsonl`».
-**Goal:** add a non-blocking, timeout-bound subprocess call from `finalize_session.py` into `scripts/reasoning_bank.py ingest_lessons`, with structured status logged to `audit_history.jsonl`.
+**Branch:** `feat/v2.0.0-phase-6a-mechanical-cleanup` (off Phase 5)
+**Spec:** [docs/specs/2026-05-21-production-readiness.md](docs/specs/2026-05-21-production-readiness.md) §Phase 6
+**Goal:** PR #6a — config/file mechanics only. Design work (subagents, statusline, docs) is split to PR #6b.
 
 ## Legend
 - `[ ]` — not started (blocks commit)
@@ -12,44 +11,43 @@
 - `[-]` — skipped / not applicable
 
 ## Execution pattern
-Pure Sonnet-class work — single file, small surface area, mechanical. Main thread (Opus 4.7) handles it inline; no subagent delegation needed.
+Pure Sonnet-class mechanical edits — main thread handles inline, no subagent delegation.
 
 ## Steps
 
-### 5.1 — Patch `scripts/finalize_session.py`
-- [x] Add module-level constant `AUDIT_HISTORY_FILE = ".memory/audit_history.jsonl"`
-- [x] Add `ingest_reasoning_bank()` — non-blocking subprocess call to `python scripts/reasoning_bank.py ingest_lessons` with `timeout=30`, `check=False`, `capture_output=True`, `text=True`
-- [x] Handle exceptions: `subprocess.TimeoutExpired` → status `"timeout"`; other `OSError`/`Exception` → status `"error"` with message
-- [x] Map returncode: `0` → `"ok"`; non-zero → `"skipped"` (ChromaDB missing is the common case — not a failure)
-- [x] Capture last ~5 lines of stdout/stderr (truncated) for diagnostics
-- [x] Append one JSON line to `.memory/audit_history.jsonl` with: `event: "reasoning_bank_ingest"`, `timestamp` (ISO UTC), `status`, `returncode`, `duration_s`, `stdout_tail`, `stderr_tail`
-- [x] Print a one-line human-readable summary (e.g. `📚 ReasoningBank ingest: ok (12 lessons, 1.3s)` or `📚 ReasoningBank ingest: skipped — chromadb not installed`)
-- [x] Wire into `main()` between `collect_session_metrics()` and `record_session_trajectory()`
-- [x] Confirm script keeps working when `.memory/audit_history.jsonl` doesn't yet exist (open append mode creates it)
+### 6.1 — File hygiene
+- [x] **6.1a** Remove `scripts/monitor_context.sh` (superseded by `session_start.py` context monitor from PR #4)
+- [x] **6.1b** `git mv .memory/claude_code_state.md .memory/api_reference_hooks.md` (it's an API snapshot, not project state)
+- [x] **6.1c** Update stale refs in `TEMPLATE_README.md` (lines 95 + 108): drop `monitor_context.py` entry, rename `claude_code_state.md` → `api_reference_hooks.md`. Also update the file's own heading to match new name.
 
-### 5.2 — Smoke test: chromadb-missing path (current env)
-- [x] Run `python -c "from scripts.finalize_session import ingest_reasoning_bank; ingest_reasoning_bank()"` (or equivalent direct invocation)
-- [x] Verify `audit_history.jsonl` gains a row with `event: "reasoning_bank_ingest"` and `status: "skipped"` (or `"error"` if missing-module bubbles up via stderr)
-- [x] Verify the call returns normally — no SystemExit, no traceback in the parent
+### 6.4 — Explicit outputStyle
+- [x] Add top-level `"outputStyle": "default"` to `.claude/settings.json` (explicit > implicit; future readers see the chosen style).
 
-### 5.3 — Code-path review: timeout & error branches
-- [x] Trace the `subprocess.TimeoutExpired` branch — confirm the JSON row is still written and the function returns
-- [x] Trace the generic `Exception` branch — confirm we never let an exception escape into `finalize_session.main()`
+### 6.5 — pyproject scaffold audit
+- [x] Read `bootstrap.ps1` lines 185-214 (existing scaffold)
+- [x] Compare against modern PEP 621 + tooling baseline. Add only what's missing — likely candidates: `[project.optional-dependencies] dev = [...]`, `[tool.ruff]`, `[tool.black]`, `[tool.pytest.ini_options]`
+- [x] Keep the scaffold minimal — it's a starting point, not a full config
 
-### 5.4 — Manifest & sync sanity
-- [x] `python scripts/regenerate_plugin_manifest.py --check` → exit 0 (no hooks/skills/commands changed, expect clean)
-- [x] `python scripts/sync_agents_md.py --check` → exit 0 (no AGENTS.md changes — pure script edit)
+### 6.8 — .env.example enrichment
+- [x] Add `ANTHROPIC_API_KEY=` with comment (used by Anthropic SDK, optional if running purely through Claude Code CLI)
+- [x] Add `HTTPS_PROXY=` with comment (corporate networks)
+- [x] Add `CLAUDE_DISABLE_PLANNING_HINT=` with comment (set to 1 to silence planning_hint.py hook)
 
-### 5.5 — Wrap-up
-- [x] Update `.memory/activeContext.md` — Phase 5 complete, Phase 6 next
-- [x] Commit `feat(reasoning-bank): v2.0.0 Phase 5 — auto-ingest on session finalize` (NO `--no-verify`)
+### wrap
+- [x] Manifest + AGENTS.md sync sanity: `python scripts/regenerate_plugin_manifest.py --check` + `python scripts/sync_agents_md.py --check` (no hook/skill changes expected → clean)
+- [x] Update `.memory/activeContext.md` — Phase 6a done, Phase 6b next
+- [x] Commit `chore(cleanup): v2.0.0 Phase 6a — mechanical bundle` (NO `--no-verify`)
 
-## Non-goals (this PR)
-- Hybrid search (BM25 + vector) in `reasoning_bank.py` — explicitly out of scope (v2.1+)
-- Ingesting trajectories alongside lessons — keep this PR minimal; trajectories ingest is already a separate command
-- New subagents, statusline, pyproject scaffold — Phase 6
+## Out of scope (deferred to PR #6b)
+- 6.2 subagents `code-reviewer.md` + `researcher.md` (Opus design)
+- 6.3 `statusline.py` hook + settings registration
+- 6.6 ADR + spec example files
+- 6.7 `docs/template-design.md` (absorbs `TEMPLATE_README.md`)
 
 ## Acceptance
-- `scripts/finalize_session.py` runs ReasoningBank ingest as a bounded subprocess and always logs a structured row to `.memory/audit_history.jsonl`
-- When `chromadb` is absent the function reports `skipped` and finalize_session keeps going
-- No new pre-commit failures; manifest + AGENTS.md sync stay green
+- `scripts/monitor_context.sh` gone; `.memory/api_reference_hooks.md` present (and old name absent)
+- `TEMPLATE_README.md` references updated
+- `.claude/settings.json` declares `outputStyle: default`
+- `bootstrap.ps1` pyproject scaffold has tooling sections
+- `.env.example` has 3 new variables with comments
+- pre-commit clean (manifest + AGENTS.md sync green)
