@@ -1,0 +1,29 @@
+{
+  "name": "claude-ecosystem-template",
+  "owner": {
+    "name": "vibev",
+    "url": "https://github.com/vibev"
+  },
+  "metadata": {
+    "description": "Stack-agnostic AI ecosystem for Claude Code projects: hooks, commands, agents, skills.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "claude-ecosystem-plugin",
+      "source": "./",
+      "description": "Hooks (session_start, stop_audit, block_no_verify), slash-commands (new_session, audit_ecosystem, extract_lesson, …), the ecosystem-auditor subagent, and skills (clean-workspace, deploy-fresh). Bundles a 3-tier memory model with ReasoningBank-format lessons and a self-improving loop.",
+      "version": "1.0.0",
+      "homepage": "https://github.com/vibev/claude-ecosystem-template",
+      "license": "MIT",
+      "keywords": [
+        "ecosystem",
+        "hooks",
+        "memory",
+        "reasoning-bank",
+        "audit",
+        "agents-md"
+      ]
+    }
+  ]
+}

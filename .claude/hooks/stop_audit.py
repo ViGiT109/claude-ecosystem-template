@@ -50,23 +50,46 @@ def count_uncommitted() -> int:
 
 
 def audit_age_days() -> int:
-    """Returns age of the last entry in audit_history.jsonl (in days).
+    """Returns age (in days) of the last `event == "audit_complete"` entry.
 
-    Supports two timestamp formats: new (`timestamp`, UTC) and legacy (`date`, local).
+    We filter by event type because this hook ALSO writes a `stop_hook` entry
+    on every Claude turn — without filtering, the "last entry" is always
+    seconds old and the freshness signal is meaningless. Only entries appended
+    by `/audit_ecosystem` Phase E count.
+
+    Returns 999 when no `audit_complete` entry exists (treated as "very stale").
+    Supports two timestamp formats: new (`timestamp`, UTC) and legacy (`date`).
     """
     if not AUDIT_LOG.exists():
         return 999
+    last: dt.datetime | None = None
     try:
-        last_line = AUDIT_LOG.read_text(encoding="utf-8").strip().splitlines()[-1]
-        entry = json.loads(last_line)
-        stamp = entry.get("timestamp") or entry.get("date")
-        if not stamp:
-            return 999
-        last = dt.datetime.fromisoformat(stamp.rstrip("Z"))
-        now = dt.datetime.now(dt.UTC).replace(tzinfo=None)
-        return (now - last).days
-    except (OSError, IndexError, KeyError, ValueError):
+        for raw in AUDIT_LOG.read_text(encoding="utf-8").splitlines():
+            raw = raw.strip()
+            if not raw:
+                continue
+            try:
+                entry = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+            if entry.get("event") != "audit_complete":
+                continue
+            stamp = entry.get("timestamp") or entry.get("date")
+            if not stamp:
+                continue
+            try:
+                ts = dt.datetime.fromisoformat(stamp.rstrip("Z"))
+            except ValueError:
+                continue
+            if last is None or ts > last:
+                last = ts
+    except OSError:
         return 999
+
+    if last is None:
+        return 999
+    now = dt.datetime.now(dt.UTC).replace(tzinfo=None)
+    return (now - last).days
 
 
 def main() -> int:

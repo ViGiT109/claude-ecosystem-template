@@ -84,16 +84,53 @@ def check_lessons_reminder() -> None:
 
 
 def check_audit_debt() -> None:
-    """Warn if no full ecosystem audit has run in >14 days."""
+    """Warn if no full ecosystem audit (`event: audit_complete`) has run in >14 days.
+
+    We must NOT use the file's mtime: every Claude turn appends a `stop_hook`
+    entry to audit_history.jsonl, so mtime is always seconds old. Instead scan
+    for entries with `event == "audit_complete"` (written by `/audit_ecosystem`
+    Phase E) and take the most recent.
+    """
     history_file = ".memory/audit_history.jsonl"
     if not os.path.exists(history_file):
         print("\n⚠️  AUDIT DEBT: audit_history.jsonl not found.")
         print("   No full audit has ever been run.")
         print("   → Run /audit_ecosystem in Claude Code")
         return
-    age_days = (time.time() - os.path.getmtime(history_file)) / 86400
+
+    last_complete: datetime | None = None
+    try:
+        with open(history_file, encoding="utf-8") as fh:
+            for raw in fh:
+                raw = raw.strip()
+                if not raw:
+                    continue
+                try:
+                    entry = json.loads(raw)
+                except json.JSONDecodeError:
+                    continue
+                if entry.get("event") != "audit_complete":
+                    continue
+                stamp = entry.get("timestamp") or entry.get("date")
+                if not stamp:
+                    continue
+                try:
+                    ts = datetime.fromisoformat(stamp.rstrip("Z"))
+                except ValueError:
+                    continue
+                if last_complete is None or ts > last_complete:
+                    last_complete = ts
+    except OSError:
+        return
+
+    if last_complete is None:
+        print("\n⚠️  AUDIT DEBT: no `audit_complete` events recorded.")
+        print("   → Run /audit_ecosystem in Claude Code")
+        return
+
+    age_days = (datetime.utcnow() - last_complete).days
     if age_days > 14:
-        print(f"\n⚠️  AUDIT DEBT: Last ecosystem audit was {age_days:.0f} days ago.")
+        print(f"\n⚠️  AUDIT DEBT: Last ecosystem audit was {age_days} days ago.")
         print("   → Consider running a full audit soon.")
 
 

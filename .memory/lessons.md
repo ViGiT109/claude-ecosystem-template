@@ -27,7 +27,11 @@
 
 ## Project-Specific
 
-<!-- Add project-specific lessons here using /extract_lesson -->
+### Memory Item: Append-only logs need event-type filters for "freshness" checks
+**Title:** Don't measure freshness by mtime or last-line on a write-heavy log
+**Description:** A freshness/staleness signal on an append-only JSONL log is meaningless when the file is written by a high-frequency event (e.g. every Claude turn). Using file mtime or `lines[-1]` masks the actual age of the signal the user cares about.
+**Content:** `.memory/audit_history.jsonl` is appended to by `stop_audit.py` on every Stop hook (`event: "stop_hook"`) — once per Claude turn. The original `audit_age_days()` (in `stop_audit.py`) and `check_audit_debt()` (in `finalize_session.py`) reported the age of the **last entry** or the **file mtime**, both of which were always seconds old. Result: a "no full audit in N days" signal that could never fire. **Fix:** always filter by the specific `event` type you care about (`event == "audit_complete"`) and find the most recent qualifying entry; never use file mtime as a proxy for "did this specific thing happen recently". Producers of those events must explicitly emit them — `/audit_ecosystem` Phase E now appends the `audit_complete` marker.
+**Source:** Phase 2 PR #2, 2026-05-21 | outcome: prevention + fix applied
 
 ---
 

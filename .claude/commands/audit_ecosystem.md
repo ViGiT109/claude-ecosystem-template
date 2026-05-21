@@ -224,6 +224,20 @@ If the same error has repeated 3+ times (check `.memory/lessons.md` or `audit_hi
 If Phase C found new lessons or violations:
 1. **Record** the lesson via `/extract_lesson` (right now)
 2. **Propose** changes to rules/commands if a systemic issue was found
+3. **Append a completion marker** to `.memory/audit_history.jsonl` — required:
+   ```python
+   import datetime as dt, json, pathlib
+   pathlib.Path(".memory/audit_history.jsonl").open("a", encoding="utf-8").write(
+       json.dumps({
+           "timestamp": dt.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+           "event": "audit_complete",
+           "rating": "🟢"  # or 🟡 / 🔴 — match the report's Overall rating
+       }) + "\n"
+   )
+   ```
+   This is what the audit-freshness signals in `session_start.py`,
+   `stop_audit.py::audit_age_days()`, and `finalize_session.py::check_audit_debt()`
+   look for. Without this entry, those signals will report 🟡 forever.
 
 > **PROHIBITION:** Do not close the audit with "everything is generally fine". If every Phase B item has ✅ —
 > show concrete evidence for each. A superficial audit is a failed audit.

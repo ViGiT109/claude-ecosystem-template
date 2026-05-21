@@ -6,6 +6,8 @@ Outputs:
   (placeholder `${PROJECT_NAME}` still present in README.md / CLAUDE.md / .ecosystem.toml)
 - First lines of `.memory/activeContext.md` (current phase, sprint focus)
 - Freshness of `.memory/lessons.md` (last-updated date)
+- Audit-freshness reminder when no `event: audit_complete` entry in
+  `.memory/audit_history.jsonl` exists in the last 14 days
 - Uncommitted git changes status
 
 The stdout of this script is automatically injected into the Claude Code session context.
@@ -13,6 +15,7 @@ The stdout of this script is automatically injected into the Claude Code session
 from __future__ import annotations
 
 import datetime as dt
+import json
 import os
 import subprocess
 import sys
@@ -88,6 +91,58 @@ def emit_lessons_freshness() -> None:
     print()
 
 
+def emit_audit_freshness() -> None:
+    """Emit a 🟡 reminder when no full ecosystem audit has run in >14 days.
+
+    The check looks at `.memory/audit_history.jsonl` and considers ONLY entries
+    where `event == "audit_complete"` — those are appended by `/audit_ecosystem`
+    after Phase E. Routine `stop_hook` entries (one per Claude turn) are ignored
+    because they would otherwise mask the actual audit cadence.
+    """
+    path = PROJECT_DIR / ".memory" / "audit_history.jsonl"
+    threshold_days = 14
+
+    if not path.exists():
+        print(f"## 📊 audit: 🟡 audit_history.jsonl missing — run `/audit_ecosystem` to start tracking")
+        print()
+        return
+
+    last_complete: dt.datetime | None = None
+    try:
+        for raw in path.read_text(encoding="utf-8").splitlines():
+            raw = raw.strip()
+            if not raw:
+                continue
+            try:
+                entry = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+            if entry.get("event") != "audit_complete":
+                continue
+            stamp = entry.get("timestamp") or entry.get("date")
+            if not stamp:
+                continue
+            try:
+                ts = dt.datetime.fromisoformat(stamp.rstrip("Z"))
+            except ValueError:
+                continue
+            if last_complete is None or ts > last_complete:
+                last_complete = ts
+    except OSError:
+        return
+
+    if last_complete is None:
+        print(f"## 📊 audit: 🟡 no `/audit_ecosystem` runs recorded — consider running one")
+        print()
+        return
+
+    age_days = (dt.datetime.utcnow() - last_complete).days
+    if age_days > threshold_days:
+        print(f"## 📊 audit: 🟡 last full audit was {age_days} days ago — run `/audit_ecosystem`")
+        print()
+    # Fresh → silent (avoid noise on every session start).
+
+
 def emit_git_status() -> None:
     try:
         out = subprocess.run(
@@ -121,6 +176,7 @@ def main() -> int:
     print()
     emit_active_context()
     emit_lessons_freshness()
+    emit_audit_freshness()
     emit_git_status()
     print("_Run `/new_session` to load full context._")
     return 0
