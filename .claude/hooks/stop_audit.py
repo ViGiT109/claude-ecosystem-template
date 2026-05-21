@@ -97,15 +97,15 @@ def main() -> int:
 
     abandoned = check_task_md()
     if abandoned:
-        notes.append(f"⚠️ {len(abandoned)} unclosed task(s) in task.md")
+        notes.append(f"⚠️ {len(abandoned)} незакрыт(ых) задач(и) в task.md")
 
     uncommitted = count_uncommitted()
     if uncommitted > 0:
-        notes.append(f"📝 {uncommitted} uncommitted change(s)")
+        notes.append(f"📝 {uncommitted} незакоммиченных изменени(е/я)")
 
     age = audit_age_days()
     if age > 14:
-        notes.append(f"📊 audit_history.jsonl is {age} days old (run `/audit_ecosystem`)")
+        notes.append(f"📊 последний полный аудит — {age} дн. назад (запусти `/audit_ecosystem`)")
 
     # Always log (append-only) for session history
     entry = {
@@ -123,7 +123,7 @@ def main() -> int:
         pass  # logging is best-effort
 
     if notes:
-        print("## 🔔 Reminders (stop-hook):")
+        print("## 🔔 Напоминания (stop-hook):")
         for n in notes:
             print(f"- {n}")
 

@@ -22,10 +22,10 @@ def main() -> int:
             pass
 
     if found:
-        print("❌ ABANDONED TASKS DETECTED — commit blocked!")
+        print("❌ НАЙДЕНЫ БРОШЕННЫЕ ЗАДАЧИ — коммит заблокирован!")
         for f, n, line in found:
             print(f"  {f}:{n}: {line}")
-        print("\nClose all [ ] and [/] items in task.md before committing.")
+        print("\nЗакрой все [ ] и [/] пункты в task.md перед коммитом.")
         return 1
 
     return 0

@@ -61,14 +61,14 @@ def check_bootstrap_done() -> bool:
 
     print("# 🔴 BOOTSTRAP REQUIRED")
     print()
-    print(f"Unresolved `{PLACEHOLDER}` placeholder(s) detected in:")
+    print(f"Найдены нерезолвленные плейсхолдеры `{PLACEHOLDER}` в файлах:")
     for name in flagged:
         print(f"  - {name}")
     print()
-    print("**Run `.\\bootstrap.ps1` (Windows) or `./bootstrap.sh` before continuing.**")
+    print("**Перед продолжением запусти `.\\bootstrap.ps1` (Windows) или `./bootstrap.sh`.**")
     print()
-    print("Until bootstrap completes the project is not initialised — paths, names,")
-    print("and language-specific scaffolding are still in template form.")
+    print("Пока bootstrap не выполнен — проект не инициализирован: пути, имена и")
+    print("языковая обвязка всё ещё в шаблонной форме.")
     return True
 
 
@@ -80,7 +80,7 @@ def emit_active_context() -> None:
     # First 25 lines typically contain YAML frontmatter + current phase
     head = "\n".join(lines[:25]).rstrip()
     if head:
-        print("## 📍 activeContext.md (sprint focus)")
+        print("## 📍 activeContext.md (фокус спринта)")
         print(head)
         print()
 
@@ -92,12 +92,12 @@ def emit_lessons_freshness() -> None:
     mtime = dt.datetime.fromtimestamp(path.stat().st_mtime)
     age_days = (dt.datetime.now() - mtime).days
     if age_days < 7:
-        status = "🟢 fresh"
+        status = "🟢 свежий"
     elif age_days < 30:
-        status = "🟡 getting stale"
+        status = "🟡 начинает устаревать"
     else:
-        status = "🔴 overdue for update"
-    print(f"## 📚 lessons.md: {status} (updated {age_days} days ago — {mtime:%Y-%m-%d})")
+        status = "🔴 пора обновить"
+    print(f"## 📚 lessons.md: {status} (обновлён {age_days} дн. назад — {mtime:%Y-%m-%d})")
     print()
 
 
@@ -113,7 +113,7 @@ def emit_audit_freshness() -> None:
     threshold_days = 14
 
     if not path.exists():
-        print(f"## 📊 audit: 🟡 audit_history.jsonl missing — run `/audit_ecosystem` to start tracking")
+        print("## 📊 audit: 🟡 audit_history.jsonl отсутствует — запусти `/audit_ecosystem`, чтобы начать отслеживание")
         print()
         return
 
@@ -142,13 +142,13 @@ def emit_audit_freshness() -> None:
         return
 
     if last_complete is None:
-        print(f"## 📊 audit: 🟡 no `/audit_ecosystem` runs recorded — consider running one")
+        print("## 📊 audit: 🟡 не зафиксировано ни одного запуска `/audit_ecosystem` — стоит запустить")
         print()
         return
 
     age_days = (dt.datetime.utcnow() - last_complete).days
     if age_days > threshold_days:
-        print(f"## 📊 audit: 🟡 last full audit was {age_days} days ago — run `/audit_ecosystem`")
+        print(f"## 📊 audit: 🟡 последний полный аудит был {age_days} дн. назад — запусти `/audit_ecosystem`")
         print()
     # Fresh → silent (avoid noise on every session start).
 
@@ -230,9 +230,9 @@ def emit_context_window_status(payload: dict) -> None:
     else:
         print("## 🔄 SESSION HANDOFF RECOMMENDED")
     print()
-    print(f"- Estimated context: **{tokens:,} tokens** (~{pct:.0f}% of {model} {window:,})")
-    print("- Switching models mid-session does **not** reclaim context — only a new session does.")
-    print("- Suggested action: run `/handoff` → start a new session → `/new_session`.")
+    print(f"- Оценка контекста: **{tokens:,} токенов** (~{pct:.0f}% от окна {model} {window:,})")
+    print("- Переключение модели внутри сессии **не** освобождает контекст — это делает только новая сессия.")
+    print("- Рекомендация: запусти `/handoff` → стартуй новую сессию → `/new_session`.")
     print()
 
 
@@ -250,13 +250,13 @@ def emit_git_status() -> None:
         return
     lines = [ln for ln in (out.stdout or "").splitlines() if ln.strip()]
     if not lines:
-        print("## 🧹 git: clean (no uncommitted changes)")
+        print("## 🧹 git: чисто (нет незакоммиченных изменений)")
     else:
-        print(f"## ⚠️ git: {len(lines)} uncommitted change(s)")
+        print(f"## ⚠️ git: {len(lines)} незакоммиченных изменени(е/я)")
         for ln in lines[:10]:
             print(f"  {ln}")
         if len(lines) > 10:
-            print(f"  ... and {len(lines) - 10} more")
+            print(f"  ... и ещё {len(lines) - 10}")
     print()
 
 
@@ -267,14 +267,14 @@ def main() -> int:
 
     payload = _read_stdin_json()
 
-    print("# 🚀 Project context (auto-injected by SessionStart hook)")
+    print("# 🚀 Контекст проекта (авто-инжект из SessionStart-хука)")
     print()
     emit_context_window_status(payload)
     emit_active_context()
     emit_lessons_freshness()
     emit_audit_freshness()
     emit_git_status()
-    print("_Run `/new_session` to load full context._")
+    print("_Запусти `/new_session`, чтобы загрузить полный контекст._")
     return 0
 
 

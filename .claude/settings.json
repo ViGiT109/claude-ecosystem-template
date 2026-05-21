@@ -55,6 +55,11 @@
             "type": "command",
             "command": "python .claude/hooks/_run.py .claude/hooks/planning_hint.py",
             "timeout": 3
+          },
+          {
+            "type": "command",
+            "command": "python .claude/hooks/_run.py .claude/hooks/language_check.py",
+            "timeout": 3
           }
         ]
       }

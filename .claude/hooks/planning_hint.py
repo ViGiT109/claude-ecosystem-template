@@ -76,10 +76,10 @@ def _find_trigger(prompt: str) -> str | None:
 
 def _emit_block(trigger: str) -> None:
     print("🧭 PLAN PHASE RECOMMENDED")
-    print(f"   Trigger: «{trigger}»")
-    print("   Suggested action: Enter Plan Mode (Shift+Tab)")
+    print(f"   Триггер: «{trigger}»")
+    print("   Рекомендуемое действие: войти в Plan Mode (Shift+Tab)")
     print("💡 MODEL: Opus 4.7")
-    print("   Reason: planning + architectural reasoning (see .agents/rules/model-policy.md)")
+    print("   Причина: планирование + архитектурный reasoning (см. .agents/rules/model-policy.md)")
 
 
 def main() -> int:

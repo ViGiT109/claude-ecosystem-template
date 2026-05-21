@@ -36,10 +36,10 @@ def main() -> int:
     command = payload.get("tool_input", {}).get("command", "")
     if NO_VERIFY_RE.search(command):
         print(
-            "BLOCKED by .claude/hooks/block_no_verify.py:\n"
-            "  Command uses --no-verify (or -n), which is prohibited by CLAUDE.md.\n"
-            "  Pre-commit hooks are part of the project guardrails (task.md, linting, deps-sync).\n"
-            "  If a pre-commit hook is broken — FIX IT FIRST, then commit.",
+            "ЗАБЛОКИРОВАНО хуком .claude/hooks/block_no_verify.py:\n"
+            "  Команда использует --no-verify (или -n), что запрещено CLAUDE.md.\n"
+            "  Pre-commit хуки — часть guardrails проекта (task.md, линтинг, deps-sync).\n"
+            "  Если pre-commit хук сломан — СНАЧАЛА почини его, потом коммить.",
             file=sys.stderr,
         )
         return 2

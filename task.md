@@ -21,4 +21,8 @@
 - **Phase 3** — Downstream distribution (`feat/v2.1-phase-3-update-ecosystem`): new `scripts/update_ecosystem.py` with `--dry-run` default, SHA-protected `CLAUDE.md`/`AGENTS.md`, skiplist for `.memory/` and `.env*`.
 - **Phase 4** — Release (`release/v2.1.0`): version bump in `plugin.json` + `.ecosystem.toml`, CHANGELOG v2.1 entry, annotated tag, post-release audit ≥85/100.
 
+## Side branch (independent of phases)
+
+- **`chore/ru-user-facing-and-language-hook`** — переведены `.memory/activeContext.md`, `.memory/lessons.md`, сообщения хуков (`session_start.py`, `planning_hint.py`, `stop_audit.py`, `block_no_verify.py`) и `scripts/check_task_guardrail.py`; добавлен новый хук `.claude/hooks/language_check.py` (UserPromptSubmit, детектит кириллицу → инжектит напоминание отвечать по-русски). Зарегистрирован в `.claude/settings.json`, `plugin.json` регенерирован. Англоязычные артефакты шаблона (`AGENTS.md`, `CLAUDE.md`, `TEMPLATE_README.md`, `.agents/rules/*`) сознательно не трогали — кросс-инструментальный стандарт.
+
 Acceptance criteria for all phases are mirrored in the spec; sprint progress is tracked in [.memory/activeContext.md](.memory/activeContext.md).
