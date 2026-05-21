@@ -33,6 +33,12 @@
 **Content:** `.memory/audit_history.jsonl` is appended to by `stop_audit.py` on every Stop hook (`event: "stop_hook"`) — once per Claude turn. The original `audit_age_days()` (in `stop_audit.py`) and `check_audit_debt()` (in `finalize_session.py`) reported the age of the **last entry** or the **file mtime**, both of which were always seconds old. Result: a "no full audit in N days" signal that could never fire. **Fix:** always filter by the specific `event` type you care about (`event == "audit_complete"`) and find the most recent qualifying entry; never use file mtime as a proxy for "did this specific thing happen recently". Producers of those events must explicitly emit them — `/audit_ecosystem` Phase E now appends the `audit_complete` marker.
 **Source:** Phase 2 PR #2, 2026-05-21 | outcome: prevention + fix applied
 
+### Memory Item: Don't outsource contextual signals to deterministic hooks
+**Title:** Emit PLAN/MODEL block manually when triggers are contextual, not lexical
+**Description:** `planning_hint.py` (UserPromptSubmit) fires only on RU/EN keyword triggers or ≥3 file references — by design. When the user prompt is short ("делаем всё по порядку", "продолжаем", "делай") but the underlying work is architectural (writing a multi-phase spec, designing a subsystem, scoping a release), the hook stays silent. AGENTS.md explicitly requires the agent to close that gap by hand; relying on the hook alone causes silent drift from the planning/model policy.
+**Content:** **Root cause:** the agent treats `planning_hint.py` as a complete planning detector instead of a lexical-only first line. **Prevention:** before invoking `/create_spec`, `/agentic_tdd`, or any design-skill — and before any work spanning >1 phase or >3 files — verify that the `🧭 PLAN + 💡 MODEL` block was emitted (either by the hook earlier in the turn, or by me inline). If not, emit it before the skill call. The block format is in `.agents/rules/model-policy.md` §Block formats. Cost of emitting one is near-zero; cost of omitting one is policy drift the user has to catch.
+**Source:** session 2026-05-22 (v2.1 spec creation) | outcome: partial-failure (spec written correctly, but signal block skipped)
+
 ---
 
 ## Anti-Patterns
