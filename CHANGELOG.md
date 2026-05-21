@@ -21,6 +21,29 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [2.0.1] — 2026-05-21
+
+Hotfix bundle from the post-v2.0.0 sanity audit (🟢 92/100 via `ecosystem-auditor`
+subagent). Two P1 follow-ups; no functional code changes.
+
+### Fixed
+
+- **CHANGELOG numeric drift** — Phase 3 bullet claimed "9 slash commands"; the
+  actual count is **10** (8 existing commands + 2 new: `/model_check`,
+  `/handoff`). Surfaced by the audit's Devil's-Advocate pass on the v2.0.0
+  CHANGELOG.
+
+### Added
+
+- **First `audit_complete` row in `.memory/audit_history.jsonl`** — the v2.0.0
+  audit-freshness fix (Phase 2 PR #2) had no production evidence yet because no
+  `/audit_ecosystem` Phase E had run on the released state. This release
+  records the v2.0.0 release-state audit (🟢 92/100, mode=`cross-session`,
+  source=`ecosystem-auditor subagent`) so the freshness signal has its first
+  real datapoint. Future audits append additional rows the same way.
+
+---
+
 ## [2.0.0] — 2026-05-21
 
 Production-readiness upgrade. Implemented over 6 stacked feature branches off the
@@ -60,7 +83,7 @@ for the full spec and 17 architectural decisions.
 - `.agents/rules/model-policy.md` (~155 lines) — Always-Opus allowlist,
   Sonnet safe-path whitelist, Context Window Awareness, Model Switch
   Checkpoint, silent subagent delegation, block-format spec.
-- `model:` frontmatter on all 9 slash commands; `ecosystem-auditor` pinned
+- `model:` frontmatter on all 10 slash commands (8 existing + 2 new); `ecosystem-auditor` pinned
   to `model: opus`.
 - New slash commands `/model_check` and `/handoff`.
 
