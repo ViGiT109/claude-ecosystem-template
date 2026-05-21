@@ -21,11 +21,126 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ---
 
-<!-- Example of a released version:
+## [2.0.0] — 2026-05-21
 
-## [0.1.0] — YYYY-MM-DD
+Production-readiness upgrade. Implemented over 6 stacked feature branches off the
+v1.0 baseline (`7be1950`). See [`docs/specs/2026-05-21-production-readiness.md`](docs/specs/2026-05-21-production-readiness.md)
+for the full spec and 17 architectural decisions.
+
+### ⚠️ Breaking changes
+
+- **`AGENTS.md` is now the source-of-truth for AI agent rules.** `CLAUDE.md` is
+  auto-generated from `AGENTS.md` via `scripts/sync_agents_md.py` and a
+  pre-commit hook (`agents-md-sync`) that refuses commits when the two are
+  out of sync. **Action required:** edit `AGENTS.md` instead of `CLAUDE.md`.
+  Rationale in [ADR-001](docs/adr/001-agents-md-source-of-truth.md).
+- **`.claude/Skills/` renamed to `.claude/skills/`** (case-sensitive filesystem
+  compatibility). Downstream consumers may need to update references.
+- **Generic skills removed** (`deep-research`, `problem-solving`, `triz`).
+  They are not part of the governance core and bloated the template. If you
+  need them, install from upstream skill packs as a separate concern.
+- **Default agent model is Opus 4.7.** Inverts the typical 2026 default —
+  Sonnet 4.6 is used only on explicit safe-path triggers (small, mechanical,
+  single-file edits). See [`.agents/rules/model-policy.md`](.agents/rules/model-policy.md).
 
 ### Added
-- Initial project structure from claude-ecosystem-template
-- Core feature X
--->
+
+**Phase 1 — Critical fixes**
+- `AGENTS.md` as canonical rules source with `scripts/sync_agents_md.py`
+  generator and `agents-md-sync` pre-commit hook.
+- Bootstrap guard in `session_start.py` — emits `🔴 BOOTSTRAP REQUIRED` block
+  when `${PROJECT_NAME}` placeholders are still present.
+
+**Phase 2 — Distribution-readiness**
+- `scripts/regenerate_plugin_manifest.py` + `plugin-manifest-sync` pre-commit
+  hook (fixes drift between `plugin.json` and actual `.claude/` surface).
+- `.claude-plugin/marketplace.json` scaffold for plugin distribution.
+
+**Phase 3 — Model routing**
+- `.agents/rules/model-policy.md` (~155 lines) — Always-Opus allowlist,
+  Sonnet safe-path whitelist, Context Window Awareness, Model Switch
+  Checkpoint, silent subagent delegation, block-format spec.
+- `model:` frontmatter on all 9 slash commands; `ecosystem-auditor` pinned
+  to `model: opus`.
+- New slash commands `/model_check` and `/handoff`.
+
+**Phase 4 — Planning detector + context monitor**
+- `.claude/hooks/planning_hint.py` (UserPromptSubmit) — emits unified
+  `🧭 PLAN + 💡 MODEL` block on RU/EN architectural triggers and ≥3-file-refs
+  heuristic; honours `CLAUDE_DISABLE_PLANNING_HINT=1` killswitch.
+- Context-window monitor in `session_start.py` (transcript-size heuristic →
+  `🔄 SESSION HANDOFF` at 70%, `❌` critical at 90%).
+
+**Phase 5 — ReasoningBank auto-ingest**
+- `scripts/finalize_session.py` gains `ingest_reasoning_bank()` — bounded
+  subprocess call (`timeout=30`, status mapped to `ok` / `skipped` / `timeout`
+  / `error`), structured row written to `.memory/audit_history.jsonl`,
+  non-blocking on missing `chromadb`.
+
+**Phase 6a — Mechanical cleanup**
+- `outputStyle: default` declared explicitly in `.claude/settings.json`.
+- `bootstrap.ps1` pyproject scaffold: `[project.optional-dependencies] dev`
+  with ruff/pytest/pre-commit, `[tool.ruff.format]`, pytest `addopts`.
+- `.env.example` enriched with `ANTHROPIC_API_KEY`, `HTTPS_PROXY`,
+  `CLAUDE_DISABLE_PLANNING_HINT`.
+
+**Phase 6b — Design bundle**
+- Subagent `.claude/agents/code-reviewer.md` (`model: opus`) — independent
+  diff review with severity rubric (P0–P3), 4-axis analysis, devil's-advocate
+  phase, read-only contract.
+- Subagent `.claude/agents/researcher.md` (`model: sonnet`) — open-ended
+  investigation, cite-everything, time-boxed web research.
+- `.claude/hooks/statusline.py` — renders `🤖 <model> | 🌿 <branch> | 📊 <ctx%>`;
+  registered under top-level `statusLine` in `settings.json`.
+- ADR-001 ([`docs/adr/001-agents-md-source-of-truth.md`](docs/adr/001-agents-md-source-of-truth.md))
+  as a worked example.
+- [`docs/template-design.md`](docs/template-design.md) — rationale doc that
+  survives `bootstrap.ps1` so downstream projects retain the architecture story.
+
+### Changed
+
+- `TEMPLATE_README.md` slimmed: feature list refreshed with current counts and
+  AGENTS.md emphasis, cross-reference to `docs/template-design.md` for
+  rationale, directory layout shows all 5 hooks + 3 subagents.
+- `.claude/agents/ecosystem-auditor.md` bumped to `model: opus`.
+- `.memory/claude_code_state.md` → `.memory/api_reference_hooks.md` (more
+  honest name — it's an API snapshot, not project state) + heading refresh.
+- `bootstrap.ps1` pyproject scaffold drops deprecated `ANN101`/`ANN102` ignores
+  (removed in ruff 0.5).
+- `CLAUDE.md` regenerated from `AGENTS.md` (now carries an auto-generated
+  header).
+
+### Fixed
+
+- **Audit-freshness signal was silently broken**: `audit_history.jsonl` is
+  appended to by `stop_audit.py` on every turn, so `lines[-1]` / file-mtime
+  checks always reported the log as fresh and the "no full audit in N days"
+  signal could never fire. Filtered by `event == "audit_complete"` across
+  `session_start.py`, `stop_audit.py`, `finalize_session.py`; producers
+  (`/audit_ecosystem` Phase E) now explicitly emit the marker. Lesson
+  captured in `.memory/lessons.md` ("Don't measure freshness by mtime or
+  last-line on a write-heavy log").
+- `model-policy.md` cross-reference table no longer contains `(Phase 4)`
+  placeholder labels.
+
+### Removed
+
+- `.claude/Skills/deep-research/`, `.claude/Skills/problem-solving/`,
+  `.claude/Skills/triz/` — generic skills, not part of the governance core
+  (~6,500 lines).
+- `scripts/monitor_context.sh` — superseded by the context monitor inside
+  `session_start.py` (PR #4).
+- Stale `monitor_context.py` reference and old `claude_code_state.md` entry
+  from `TEMPLATE_README.md`'s directory layout.
+
+### Maturity
+
+This release lifts the template from the 82/100 score recorded in the
+2026-05-21 baseline audit. A re-audit on the released state is recommended
+(`/audit_ecosystem`) — target ≥90/100.
+
+---
+
+## [1.0] — initial template baseline
+
+See commit `40d576c feat: initialize claude-ecosystem-template v1.0`.
