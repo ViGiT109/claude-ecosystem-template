@@ -1,6 +1,6 @@
 {
   "name": "claude-ecosystem-plugin",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Stack-agnostic AI ecosystem for Claude Code projects: hooks, commands, agents, skills. Ported from Bingo7 v6.",
   "author": "vibev",
   "homepage": "https://github.com/vibev/claude-ecosystem-template",

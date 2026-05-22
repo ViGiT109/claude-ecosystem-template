@@ -1,11 +1,11 @@
 # Active Context
 
-> **Updated:** 2026-05-23 — Phase 1+2+3 в `main`. Следующее — Phase 4 (релиз v2.1.0).
+> **Updated:** 2026-05-23 — v2.1.0 выпущен, идёт хотфикс v2.1.1 (пост-релизный аудит дал 🟡 80/100, ниже целевых 85).
 > Loaded automatically by `session_start.py` hook (first 25 lines).
 
 ## Current Focus
 
-**v2.1 Phase 4 — Release v2.1.0.** Работаем прямо в `main`. CHANGELOG, version bump в `plugin.json` + `.ecosystem.toml`, аннотированный тег `v2.1.0`, пост-релизный аудит ≥85/100.
+**v2.1.1 hotfix closure.** Hotfix-prep уже в индексе (см. `task.md` § Phase 5). Осталось: коммит prep → аннотированный тег `v2.1.1` → повторный аудит ≥85/100 → state-sync коммит, закрывающий Phase 5 closure-чекбоксы.
 
 ## Completed in v2.1 sprint
 

@@ -15,3 +15,6 @@
 {"timestamp": "2026-05-22T12:57:06Z", "event": "stop_hook", "task_md_open": 21, "uncommitted": 2, "audit_age_days": 0}
 {"timestamp": "2026-05-22T13:01:47Z", "event": "stop_hook", "task_md_open": 0, "uncommitted": 4, "audit_age_days": 0}
 {"timestamp": "2026-05-22T22:41:23Z", "event": "stop_hook", "task_md_open": 0, "uncommitted": 4, "audit_age_days": 1}
+{"timestamp": "2026-05-22T22:44:43Z", "event": "stop_hook", "task_md_open": 0, "uncommitted": 0, "audit_age_days": 1}
+{"timestamp": "2026-05-23T00:00:00Z", "event": "audit_complete", "rating": "🟡", "score": 80, "mode": "post-release", "window": "e9d73c5^..HEAD", "tag_under_audit": "v2.1.0", "source": "ecosystem-auditor subagent", "findings": ["P1: .ecosystem.toml не поднят до 2.1.0 — нет секции [ecosystem]", "P1: session_trajectories.jsonl = 0 байт — Phase 2 ingest не verified на живых данных", "P2: Phase 4 (release) tracked в activeContext.md а не в task.md — guardrail blind spot", "P3: lessons.md не пополнялся по ходу спринта v2.1"]}
+{"timestamp": "2026-05-22T22:54:27Z", "event": "stop_hook", "task_md_open": 0, "uncommitted": 2, "audit_age_days": -1}

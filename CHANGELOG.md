@@ -13,6 +13,49 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [2.1.1] — 2026-05-23
+
+Hotfix bundle from the post-v2.1.0 audit (🟡 80/100 — three gaps recorded in
+`.memory/audit_v2.1.0_release.md`). No new features; brings the released state
+in line with what v2.1.0 advertised, plus three lessons.
+
+### Fixed
+
+- **`update_ecosystem.py::get_upstream_version()` was looking in the wrong place.**
+  The function checked the repo root for `plugin.json`, but the real file lives at
+  `.claude-plugin/plugin.json` (current Claude Code plugin layout). On a self-sync
+  with `--apply`, the `version` field in `[ecosystem]` was silently skipped. Fixed
+  by checking `.claude-plugin/plugin.json` first, then the root path as a legacy
+  fallback.
+- **`.ecosystem.toml` had no `[ecosystem]` section at all.** Spec L62 and prior
+  `activeContext.md` both listed it as a release step that v2.1.0 skipped. A
+  `python scripts/update_ecosystem.py --from . --apply` now writes the section
+  with `version`, `upstream_sha`, and the full `[ecosystem.file_shas]` snapshot —
+  the same data downstream consumers will see.
+- **Phase 2 (trajectory ingest) had no production verification before tagging.**
+  `.memory/session_trajectories.jsonl` was 0 bytes for the entire v2.1 sprint —
+  the new write-path was never exercised on a real session. Backfilled by calling
+  `record_session_trajectory()` directly on the v2.1.0 release commit; the file
+  now has its first row.
+
+### Added
+
+- **`.memory/lessons.md` × 3 new lessons:** "Ship code paths with at least one
+  prod run before declaring DONE", "Single-source-of-truth for project version
+  (and verify on release)", "Release phase checkboxes belong in task.md, not
+  activeContext.md". All cite the v2.1.0 post-release audit as source.
+- **`task.md` § Phase 5 — Hotfix v2.1.1** with explicit checkboxes for each
+  hotfix item, so the pre-commit guardrail (`check_task_guardrail.py`) actually
+  gates release-phase state going forward.
+
+### Changed
+
+- `plugin.json` 2.1.0 → 2.1.1.
+- `activeContext.md` — sprint focus moves to v2.1.1 release closure, v2.1 sprint
+  marked done.
+
+---
+
 ## [2.1.0] — 2026-05-23
 
 Reasoning Bank distribution sprint. Three phases shipped to `main` over the

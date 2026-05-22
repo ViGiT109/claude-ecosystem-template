@@ -221,15 +221,20 @@ def get_upstream_head(upstream: Path) -> str | None:
 
 
 def get_upstream_version(upstream: Path) -> str | None:
-    """Версия из plugin.json шаблона, если найдём."""
-    pj = upstream / "plugin.json"
-    if not pj.is_file():
-        return None
+    """Версия из plugin.json шаблона.
+
+    Ищем сначала `.claude-plugin/plugin.json` (текущая раскладка плагина
+    Claude Code), затем корневой `plugin.json` как fallback для старых
+    шаблонов.
+    """
     import json
-    try:
-        return json.loads(pj.read_text(encoding="utf-8")).get("version")
-    except Exception:
-        return None
+    for candidate in (upstream / ".claude-plugin" / "plugin.json", upstream / "plugin.json"):
+        if candidate.is_file():
+            try:
+                return json.loads(candidate.read_text(encoding="utf-8")).get("version")
+            except Exception:
+                continue
+    return None
 
 
 # ---------------------------------------------------------------------------

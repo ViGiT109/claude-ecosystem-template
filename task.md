@@ -59,6 +59,40 @@
 - [x] `TEMPLATE_README.md` §"Keeping the template up to date" переписан под новый скрипт
 - [x] Секция `[ecosystem]` в `.ecosystem.toml` описана там же как формат слепка
 
-## Phase 4 — Release v2.1.0
+## Phase 4 — Release v2.1.0 — **DONE**
 
-CHANGELOG, version bump in `plugin.json` + `.ecosystem.toml`, annotated tag, post-release audit ≥85/100.
+- [x] CHANGELOG §[2.1.0] написан, дата 2026-05-23
+- [x] `plugin.json` поднят 1.0.0 → 2.1.0
+- [x] Аннотированный тег `v2.1.0` создан и запушен (`c6632b7`)
+- [x] Пост-релизный аудит выполнен (`/audit_ecosystem` через `ecosystem-auditor` сабагент → 🟡 80/100, отчёт в `.memory/audit_v2.1.0_release.md`)
+
+> Балл ниже целевых 85 → автоматически собран хотфикс v2.1.1 (см. Phase 5) по
+> прецеденту v2.0.0 → v2.0.1. Решение принято автономно — см.
+> [feedback: автономные релизные решения](../C--claude-ecosystem-template/memory/feedback_autonomous_decisions.md).
+
+## Phase 5 — Hotfix v2.1.1 (prep) — **DONE**
+
+Закрывает три gap'а из аудита v2.1.0 + один найденный в процессе path-баг.
+Подготовка релиза (всё, что не требует тега):
+
+### Прод-верификация Phase 2 (trajectory ingest)
+- [x] Прямой вызов `record_session_trajectory()` с фикстурой → `.memory/session_trajectories.jsonl` получил первую строку (1 ≠ 0 байт)
+
+### Sync `.ecosystem.toml`
+- [x] Bump `plugin.json` 2.1.0 → 2.1.1
+- [x] Фикс `update_ecosystem.py::get_upstream_version()` — искать `.claude-plugin/plugin.json` перед корневым
+- [x] `python scripts/update_ecosystem.py --from . --apply` → секция `[ecosystem]` записана: `version="2.1.1"`, `upstream_sha`, `[ecosystem.file_shas]` (45 записей)
+
+### Lessons
+- [x] `.memory/lessons.md` × 3 новых записи: ship-prod-run / single-source-of-truth-version / release-checkboxes-in-task-md
+
+### Release-чеклист в task.md (этот раздел)
+- [x] Чекбоксы Phase Release живут в `task.md`, а не в `activeContext.md` — guardrail видит их
+
+### CHANGELOG
+- [x] CHANGELOG §[2.1.1] описан
+
+### Pending closure
+Тег `v2.1.1` и пост-релизный аудит ≥ 85/100 трекаются отдельным
+state-sync коммитом (создаётся ПОСЛЕ тега, иначе чекбокс с `[ ]`
+блокирует pre-commit guardrail).
