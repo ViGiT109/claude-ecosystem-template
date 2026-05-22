@@ -11,13 +11,45 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 <!-- Add changes here as they are made -->
 
+---
+
+## [2.1.0] — 2026-05-23
+
+Reasoning Bank distribution sprint. Three phases shipped to `main` over the
+v2.1 spec (`docs/specs/2026-05-22-v2.1-reasoning-bank-distribution.md`):
+hybrid retrieve, trajectory ingest, and a cross-platform downstream sync tool.
+`plugin.json` version bumped from `1.0.0` → `2.1.0` (skipped on prior releases).
+
 ### Added
+
+- **Phase 1 — Hybrid retrieve (BM25 + RRF)** in `scripts/reasoning_bank.py`.
+  New `_bm25_retrieve()` and `_rrf_fuse()`; `retrieve()` dispatches on
+  `mode ∈ {dense, sparse, hybrid}` with default `hybrid`. CLI `--mode` and
+  `--rrf-k` flags. Sparse mode works without ChromaDB installed. `mode` field
+  recorded in `.memory/retrieval_logs.jsonl`. Harness `scripts/test_reasoning_bank.py`
+  (5/5 assertions). Merge `e9d73c5`.
+- **Phase 2 — Trajectory ingest** (v2.1 schema). `session_start.py` writes
+  `.memory/.session_start` (gitignored, idempotent over 12 h);
+  `record_session_trajectory()` rewritten to v2.1 schema with `files_touched`,
+  `duration_min`, `tools_used`. `ingest_reasoning_bank()` split into two
+  bounded subprocesses (`ingest_lessons` + `ingest_trajectories`), each writing
+  its own `audit_history.jsonl` row. Defensive parser tolerates legacy
+  `files_changed`. Merge `52f3730`.
+- **Phase 3 — Downstream distribution** via `scripts/update_ecosystem.py`.
+  Cross-platform sync of `.claude/`, `.agents/`, `scripts/`, and `AGENTS.md`
+  from an upstream template (local path or git URL — auto-clones into a
+  tempdir, cleaned up in `finally`). Never touches `.memory/`, `.env*`,
+  `task.md`, `.git/`, `.ecosystem.toml`. SHA snapshot in
+  `[ecosystem.file_shas]` of `.ecosystem.toml` detects hand-edited files —
+  blocked by default, overridable with `--force`. `--apply` refreshes the
+  snapshot plus `[ecosystem].version` / `upstream_sha`. Default is dry-run
+  with a per-status plan. Idempotent self-sync: `--from .` → 0 changes
+  (45 unchanged). Commit `da14942`.
 
 ### Changed
 
-### Fixed
-
-### Removed
+- `TEMPLATE_README.md` §"Keeping the template up to date" rewritten around
+  the new `update_ecosystem.py` workflow (replaces the manual-diff guidance).
 
 ---
 
