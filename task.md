@@ -92,7 +92,7 @@
 ### CHANGELOG
 - [x] CHANGELOG §[2.1.1] описан
 
-### Pending closure
-Тег `v2.1.1` и пост-релизный аудит ≥ 85/100 трекаются отдельным
-state-sync коммитом (создаётся ПОСЛЕ тега, иначе чекбокс с `[ ]`
-блокирует pre-commit guardrail).
+### Release closure
+- [x] Аннотированный тег `v2.1.1` создан и запушен (`6e380f7`)
+- [x] Повторный пост-релизный аудит — `ecosystem-auditor` сабагент → 🟢 92/100, отчёт в `.memory/audit_v2.1.1_release.md`; все три gap'а v2.1.0 закрыты, новых ❌ нет
+- [x] `activeContext.md` Sprint Goals блок синхронизирован (Phase 4/5 `[x]`)
