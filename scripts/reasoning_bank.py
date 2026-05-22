@@ -101,12 +101,19 @@ def parse_lessons(filepath: Path = LESSONS_FILE) -> list[dict[str, str]]:
     return lessons
 
 
-def parse_trajectories(filepath: Path = TRAJECTORIES_FILE) -> list[dict[str, str]]:
-    """Parse session_trajectories.jsonl into embeddable records."""
+def parse_trajectories(filepath: Path = TRAJECTORIES_FILE) -> list[dict]:
+    """Parse session_trajectories.jsonl into embeddable records.
+
+    Supports the v2.1 expanded schema (`files_touched`, `duration_min`,
+    `tools_used`) AND the v2.0 legacy schema (`files_changed`, no duration/tools).
+    Missing fields are read defensively via `.get()`. Embedding `document`
+    intentionally stays as the 3-field summary (commit_msg | outcome | task_completion)
+    so existing ChromaDB embeddings stay comparable across schema versions.
+    """
     if not filepath.exists():
         return []
 
-    trajectories = []
+    trajectories: list[dict] = []
     for i, line in enumerate(filepath.read_text(encoding="utf-8").splitlines(), start=1):
         line = line.strip()
         if not line:
@@ -121,12 +128,21 @@ def parse_trajectories(filepath: Path = TRAJECTORIES_FILE) -> list[dict[str, str
         task_completion = record.get("task_completion", "N/A")
         document = f"{commit_msg} | outcome: {outcome} | tasks: {task_completion}"
 
+        # Legacy rows used `files_changed`; v2.1 uses `files_touched`. Read either.
+        files_touched = record.get("files_touched")
+        if files_touched is None:
+            files_touched = record.get("files_changed", [])
+
         trajectories.append({
             "id": f"trajectory-{i:03d}",
             "document": document,
             "date": record.get("date", ""),
             "outcome": outcome,
             "commit_msg": commit_msg,
+            "task_completion": task_completion,
+            "files_touched": files_touched,
+            "duration_min": record.get("duration_min"),
+            "tools_used": record.get("tools_used", []),
         })
 
     return trajectories

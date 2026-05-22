@@ -1,54 +1,58 @@
-# Task: v2.1 — Hybrid Retrieval + Trajectory Ingest + Downstream Distribution
+# Task: v2.1 Phase 2 — Trajectory Ingest
 
-**Spec:** [docs/specs/2026-05-22-v2.1-reasoning-bank-distribution.md](docs/specs/2026-05-22-v2.1-reasoning-bank-distribution.md)
-**Status:** Spec approved 2026-05-22 — 4 open questions resolved. Ready to start Phase 1.
-**Estimated:** 8–12 h, ~10 files, 4 phases, 4 PRs.
+**Spec:** [docs/specs/2026-05-22-v2.1-reasoning-bank-distribution.md](docs/specs/2026-05-22-v2.1-reasoning-bank-distribution.md) §"Phase 2"
+**Branch:** `feat/v2.1-phase-2-trajectory-ingest` (off `main` — phases independent per spec L152)
+**Phase 1 status:** done locally on `feat/v2.1-phase-1-hybrid-retrieve` (commit `a70de39`) — separate PR.
+**Phase 3/4:** out of scope for this branch — tracked in spec, will get their own `task.md` later.
 
-## Phase 1 — Hybrid retrieve (`feat/v2.1-phase-1-hybrid-retrieve`)
+## Goal
 
-- [ ] Add `rank-bm25` to `pyproject.toml::[project.optional-dependencies] reasoning`
-- [ ] Implement `_bm25_retrieve(query, top_k)` in `reasoning_bank.py` — parses lessons.md, builds BM25Okapi, returns ranked list. `lru_cache` keyed on `lessons.md` mtime
-- [ ] Implement `_rrf_fuse(dense_results, sparse_results, k=60)` — Reciprocal Rank Fusion merge
-- [ ] Refactor `retrieve()` to dispatch on `mode ∈ {dense, sparse, hybrid}` (default: `hybrid`)
-- [ ] CLI: add `--mode` and `--rrf-k` flags; sparse mode must work without chromadb installed (separate code path, no chromadb import)
-- [ ] Log `mode` field in `retrieval_logs.jsonl`
-- [ ] Write a query-harness test (`scripts/test_reasoning_bank.py` or `if __name__` block) — fixed set: exact-token query ("audit_history") + paraphrase ("when did we last audit") + multilingual ("аудит экосистемы")
-- [ ] Commit, push, verify pre-commit clean
+Make `finalize_session.py` write the full v2.1 trajectory schema and trigger
+**both** `ingest_lessons` and `ingest_trajectories` as separate bounded subprocesses,
+each producing its own `audit_history.jsonl` row.
 
-## Phase 2 — Trajectory ingest (`feat/v2.1-phase-2-trajectory-ingest`)
+## Schema target (spec L131)
 
-- [ ] Extend `finalize_session.py::record_session_trajectory()` to write JSONL row with expanded schema: `{date, commit_msg, outcome, task_completion, files_touched, duration_min, tools_used}`
-- [ ] Update `reasoning_bank.py::parse_trajectories()` to read new fields; keep `document` string as 3-field summary for embedding stability
-- [ ] Extend `finalize_session.py::ingest_reasoning_bank()` — second bounded subprocess for `ingest_trajectories`; two separate `audit_history.jsonl` rows (`event: "reasoning_bank_ingest_lessons"`, `..._trajectories`)
-- [ ] Smoke test: run `finalize_session.py` locally, verify trajectory row + two audit rows
-- [ ] Commit, push, verify pre-commit clean
+```json
+{"date": "...", "commit_msg": "...", "outcome": "...",
+ "task_completion": "...", "files_touched": ["..."],
+ "duration_min": 12.4, "tools_used": []}
+```
 
-## Phase 3 — Downstream distribution (`feat/v2.1-phase-3-update-ecosystem`)
+Today's row has `files_changed` (→ rename to `files_touched`) and lacks
+`duration_min` + `tools_used`.
 
-- [ ] Create `scripts/update_ecosystem.py` — clones upstream into temp dir, computes per-file diff for `.claude/`, `.agents/`, `scripts/`, root hooks/configs
-- [ ] Default `--dry-run`; require `--apply` for writes
-- [ ] SHA-protect `CLAUDE.md` / `AGENTS.md` against last `.ecosystem.toml` snapshot; require `--force` if user-edited
-- [ ] Skiplist: `.memory/`, `.env*`, `task.md`, `*.local.*`
-- [ ] On `--apply`: update `.ecosystem.toml::version` and `.ecosystem.toml::upstream_sha`
-- [ ] Idempotency test: `update_ecosystem.py --from . --dry-run` against self → empty diff
-- [ ] Update `TEMPLATE_README.md` §"Keeping the template up to date" — replace manual-diff prose with `update_ecosystem.py` usage
-- [ ] Commit, push, verify pre-commit clean
+## Steps
 
-## Phase 4 — Release (`release/v2.1.0`)
+- [x] Add session-start timestamping to `.claude/hooks/session_start.py` — writes
+      `.memory/.session_start` (single-line JSON: `{"started_at": "<ISO>"}`).
+      Idempotent: only writes if file is missing OR older than 12 h.
+- [x] Add `.memory/.session_start` to `.gitignore` (ephemeral, not project state).
+- [x] Update `scripts/finalize_session.py::record_session_trajectory()`:
+  - rename `files_changed` → `files_touched`
+  - add `duration_min` — diff `now` against `.memory/.session_start::started_at`, round to 1 dp
+  - add `tools_used: []` (placeholder — no aggregator yet; not in acceptance criteria)
+  - keep existing fields (date, commit_msg, task_completion, outcome) — backward-compatible
+- [x] Split `scripts/finalize_session.py::ingest_reasoning_bank()` into TWO bounded
+      subprocess calls (`ingest_lessons` + `ingest_trajectories`), each with its own
+      `audit_history.jsonl` row (`event: "reasoning_bank_ingest_lessons"` /
+      `"reasoning_bank_ingest_trajectories"`). Shared helper for both.
+- [x] Update `scripts/reasoning_bank.py::parse_trajectories()` — read new fields
+      defensively via `.get()`; embedding document stays 3-field (spec L131).
+- [x] Smoke-test: append a fake trajectory row → run `ingest_trajectories` →
+      verify no crash + audit_history row written.
+- [x] Update `.memory/activeContext.md` — Phase 2 done.
+- [x] Commit (no push yet — user decides when to open PR).
 
-- [ ] Bump version in `plugin.json` + `.ecosystem.toml` → `2.1.0`
-- [ ] `CHANGELOG.md` v2.1.0 entry (Added: hybrid retrieve, trajectory ingest, update_ecosystem; Changed: retrieve default mode)
-- [ ] Update `.memory/activeContext.md` with v2.1 sprint completion
-- [ ] Tag `v2.1.0` (annotated), push to origin, GitHub release
-- [ ] Run `ecosystem-auditor` subagent on released state — target ≥85/100
+## Acceptance (spec L110)
 
-## Acceptance (mirror of spec)
+- [x] `finalize_session.py` writes one row to `session_trajectories.jsonl` per finalize.
+- [x] Both `ingest_lessons` + `ingest_trajectories` triggered; both statuses in `audit_history.jsonl`.
+- [x] New schema honored; old rows still parse (defensive `.get()`).
 
-- [ ] `retrieve --mode hybrid` returns both exact-token + paraphrase matches on test query set
-- [ ] `retrieve --mode sparse` works without chromadb installed
-- [ ] `finalize_session.py` produces one trajectory row + two audit_history rows per finalize
-- [ ] `update_ecosystem.py --dry-run` against self → zero diff (idempotent)
-- [ ] `update_ecosystem.py --apply` updates `.claude/` in a downstream test dir without touching `.memory/`
-- [ ] `rank-bm25` listed in `[project.optional-dependencies] reasoning`; missing dep → friendly error
-- [ ] CHANGELOG v2.1 written; `plugin.json` + `.ecosystem.toml` bumped
-- [ ] Post-release audit ≥85/100
+## Out of scope (not in this PR)
+
+- `tools_used` real aggregator (deferred — placeholder empty list).
+- ChromaDB schema migration (existing collections stay).
+- v2.1.0 release / CHANGELOG (Phase 4).
+- `update_ecosystem.py` (Phase 3).

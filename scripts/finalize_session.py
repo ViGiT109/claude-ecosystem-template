@@ -25,8 +25,10 @@ CONTEXT_FILE = ".memory/activeContext.md"
 LESSONS_FILE = ".memory/lessons.md"
 TRAJECTORIES_FILE = ".memory/session_trajectories.jsonl"
 AUDIT_HISTORY_FILE = ".memory/audit_history.jsonl"
+SESSION_START_FILE = ".memory/.session_start"
 REASONING_BANK_SCRIPT = "scripts/reasoning_bank.py"
 REASONING_BANK_TIMEOUT_S = 30
+REASONING_BANK_OPS = ("ingest_lessons", "ingest_trajectories")
 
 
 def check_context_freshness() -> None:
@@ -184,8 +186,8 @@ def _tail(text: str, n: int = 5) -> str:
     return "\n".join(lines[-n:])[:500]
 
 
-def ingest_reasoning_bank() -> dict:
-    """Run `reasoning_bank.py ingest_lessons` as a bounded subprocess; log status to audit_history.
+def _run_ingest_op(op: str) -> dict:
+    """Run one ReasoningBank ingest op as a bounded subprocess; return its audit entry.
 
     Non-blocking by design: ChromaDB may be absent, the script may be slow, the
     user may have nothing to ingest yet. Any of these outcomes is logged but
@@ -199,13 +201,13 @@ def ingest_reasoning_bank() -> dict:
     """
     started = time.time()
     entry: dict = {
-        "event": "reasoning_bank_ingest",
+        "event": f"reasoning_bank_{op}",
         "timestamp": datetime.now(tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
 
     try:
         result = subprocess.run(
-            [sys.executable, REASONING_BANK_SCRIPT, "ingest_lessons"],
+            [sys.executable, REASONING_BANK_SCRIPT, op],
             capture_output=True,
             text=True,
             timeout=REASONING_BANK_TIMEOUT_S,
@@ -236,48 +238,98 @@ def ingest_reasoning_bank() -> dict:
 
     status = entry["status"]
     dur = entry["duration_s"]
+    label = op.replace("ingest_", "")
     if status == "ok":
-        print(f"\n📚 ReasoningBank ingest: ok ({dur}s)")
+        print(f"📚 ReasoningBank {label}: ok ({dur}s)")
     elif status == "skipped":
         hint = entry["stderr_tail"].splitlines()[0] if entry["stderr_tail"] else "non-zero exit"
-        print(f"\n📚 ReasoningBank ingest: skipped — {hint}")
+        print(f"📚 ReasoningBank {label}: skipped — {hint}")
     elif status == "timeout":
-        print(f"\n📚 ReasoningBank ingest: timeout (>{REASONING_BANK_TIMEOUT_S}s) — skipping")
+        print(f"📚 ReasoningBank {label}: timeout (>{REASONING_BANK_TIMEOUT_S}s) — skipping")
     else:
-        print(f"\n📚 ReasoningBank ingest: error — {entry['stderr_tail']}")
+        print(f"📚 ReasoningBank {label}: error — {entry['stderr_tail']}")
 
     return entry
 
 
+def ingest_reasoning_bank() -> dict[str, dict]:
+    """Run all ReasoningBank ingest ops (lessons + trajectories) as separate bounded subprocesses.
+
+    Each op writes its own row to `audit_history.jsonl` with a distinct `event`
+    (`reasoning_bank_ingest_lessons`, `reasoning_bank_ingest_trajectories`) so
+    downstream readers can attribute failures per-collection.
+    """
+    print()
+    return {op: _run_ingest_op(op) for op in REASONING_BANK_OPS}
+
+
+def _read_session_duration_min() -> float | None:
+    """Return minutes since the SessionStart hook stamped `.memory/.session_start`.
+
+    Returns None when the stamp is missing or unreadable — callers store this as
+    `null` so consumers can distinguish "unknown" from "0 minutes".
+    """
+    if not os.path.exists(SESSION_START_FILE):
+        return None
+    try:
+        with open(SESSION_START_FILE, encoding="utf-8") as f:
+            payload = json.load(f)
+        started_at = payload.get("started_at")
+        if not started_at:
+            return None
+        ts = datetime.fromisoformat(started_at.rstrip("Z")).replace(tzinfo=UTC)
+        delta_s = (datetime.now(tz=UTC) - ts).total_seconds()
+        return round(max(0.0, delta_s / 60), 1)
+    except (OSError, ValueError, json.JSONDecodeError):
+        return None
+
+
+def _classify_outcome(task_completion: str) -> str:
+    """Map a "done/total (pct%)" string to one of success/partial-success/partial-failure/unknown."""
+    if not task_completion or task_completion == "N/A":
+        return "unknown"
+    try:
+        rate = int(task_completion.split("(")[1].rstrip("%)"))
+    except (IndexError, ValueError):
+        return "unknown"
+    if rate == 100:
+        return "success"
+    if rate >= 70:
+        return "partial-success"
+    return "partial-failure"
+
+
 def record_session_trajectory(commit_msg: str, metrics: dict) -> None:
-    """Append session trajectory to JSONL (ReasoningBank Phase 1)."""
-    trajectory = {
-        "date": datetime.now(tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "commit_msg": commit_msg,
-        "task_completion": metrics.get("task_completion", "N/A"),
-        "files_staged": int(metrics.get("files_staged", 0)),
-        "lessons_age_days": metrics.get("lessons_age", "N/A"),
-    }
+    """Append session trajectory to JSONL with the v2.1 expanded schema.
 
-    tc = metrics.get("task_completion", "")
-    if tc and tc != "N/A":
-        try:
-            rate = int(tc.split("(")[1].rstrip("%)"))
-            trajectory["outcome"] = "success" if rate == 100 else ("partial-success" if rate >= 70 else "partial-failure")
-        except (IndexError, ValueError):
-            trajectory["outcome"] = "unknown"
-    else:
-        trajectory["outcome"] = "unknown"
+    Schema (spec L131): date, commit_msg, outcome, task_completion, files_touched,
+    duration_min, tools_used. Backward-compatible — older rows missing fields are
+    still parsed defensively in `reasoning_bank.parse_trajectories()`.
+    """
+    task_completion = metrics.get("task_completion", "N/A")
 
+    files_touched: list[str] = []
     try:
         result = subprocess.run(
             ["git", "diff", "--cached", "--name-only"],
             capture_output=True, text=True, timeout=5,
         )
         if result.returncode == 0:
-            trajectory["files_changed"] = [f for f in result.stdout.strip().splitlines() if f]
+            files_touched = [f for f in result.stdout.strip().splitlines() if f]
     except Exception:
-        trajectory["files_changed"] = []
+        files_touched = []
+
+    trajectory = {
+        "date": datetime.now(tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "commit_msg": commit_msg,
+        "outcome": _classify_outcome(task_completion),
+        "task_completion": task_completion,
+        "files_touched": files_touched,
+        "duration_min": _read_session_duration_min(),
+        # Placeholder — no in-process aggregator wires up tool counts yet.
+        # Not gated by Phase 2 acceptance criteria; keeps schema forward-compatible.
+        "tools_used": [],
+    }
 
     try:
         with open(TRAJECTORIES_FILE, "a", encoding="utf-8") as f:

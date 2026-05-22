@@ -57,3 +57,6 @@ desktop.ini
 !.memory/chroma_db/.gitkeep
 .memory/models/*
 !.memory/models/.gitkeep
+
+# Ephemeral session start timestamp (written by session_start hook, consumed by finalize_session)
+.memory/.session_start
