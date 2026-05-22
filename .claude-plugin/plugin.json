@@ -11,6 +11,7 @@
     ".claude/commands/agentic_tdd.md",
     ".claude/commands/audit_ecosystem.md",
     ".claude/commands/commit_and_release.md",
+    ".claude/commands/consolidate_lessons.md",
     ".claude/commands/create_spec.md",
     ".claude/commands/extract_lesson.md",
     ".claude/commands/handoff.md",

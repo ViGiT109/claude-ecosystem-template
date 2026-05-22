@@ -132,6 +132,23 @@ def emit_audit_freshness() -> None:
     # status == "ok" → silent
 
 
+def emit_consolidate_freshness() -> None:
+    """Emit a 🟡 CONSOLIDATE RECOMMENDED marker when memory needs a reflective pass.
+
+    Two states (computed by `_ecosystem_health.consolidate_status()`):
+    - `recommended` — 🟡 (age ≥ 30 days OR ≥ 20 lessons). Soft signal —
+       the agent should run `/consolidate_lessons` when there's a natural
+       break in the work. Never blocks.
+    - `ok` — silent.
+    """
+    status, reason = _eh.consolidate_status()
+    if status == "recommended":
+        print(f"## 🟡 CONSOLIDATE RECOMMENDED — {reason}")
+        print("- Action: run `/consolidate_lessons` (or `anthropic-skills:consolidate-memory` skill)")
+        print()
+    # status == "ok" → silent
+
+
 def _read_stdin_json() -> dict:
     """Read a JSON object from stdin without blocking on an empty pipe.
 
@@ -278,6 +295,7 @@ def main() -> int:
     emit_active_context()
     emit_lessons_freshness()
     emit_audit_freshness()
+    emit_consolidate_freshness()
     emit_git_status()
     print("_Run `/new_session` to load full context._")
     return 0

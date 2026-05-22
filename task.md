@@ -32,12 +32,12 @@
 - [x] `emit_audit_freshness()` переписан на `audit_status()` — три состояния: 🔴 `AUDIT REQUIRED` (age≥7 OR stop_hook_count≥20) + window-hint из `last_audit_info().tag_under_audit`; 🟡 `audit aging` (3-7 дней); silent (<3 дней)
 - [x] Unit-тесты (подмена timestamp в audit_history.jsonl): 13 дней назад → 🔴 + window `v2.0.0..HEAD`; 4 дня назад → 🟡 «audit aging — last audit 4 day(s) ago»; current → silent; stop_audit.py end-to-end не сломан
 
-## Phase 4 — Consolidate-memory trigger (Layer B)
+## Phase 4 — Consolidate-memory trigger (Layer B) — **DONE**
 
-- `emit_consolidate_freshness()` в `session_start.py` (симметрично audit)
-- `.claude/commands/consolidate_lessons.md` — slash-команда, триггерит `anthropic-skills:consolidate-memory`, пишет `consolidate_complete` row в `audit_history.jsonl`
-- Триггер: age > 30 дней OR lesson count > 20 → 🟡 `CONSOLIDATE RECOMMENDED`
-- Unit-тест: подмена / отсутствие event'а → корректный маркер
+- [x] `emit_consolidate_freshness()` в `session_start.py` (симметрично emit_audit_freshness, использует `_eh.consolidate_status()`)
+- [x] `.claude/commands/consolidate_lessons.md` — slash-команда, инструктирует агента вызвать `anthropic-skills:consolidate-memory` и после успеха записать `consolidate_complete` event в `.memory/audit_history.jsonl`
+- [x] Триггер: age ≥ 30 дней OR `lessons_count() >= 20` → 🟡 `CONSOLIDATE RECOMMENDED`; иначе silent
+- [x] Unit-тесты: 7 лессонов + no consolidate_complete → silent (ниже порога); инжект 20 fake lesson'ов → 🟡 «27 lesson(s), never consolidated»; restore → silent
 
 ## Phase 5 — Diagnostic dashboard + `/diag_status` (Layer C)
 
