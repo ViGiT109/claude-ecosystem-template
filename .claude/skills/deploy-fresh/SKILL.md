@@ -60,11 +60,16 @@ Open `.env` and set at minimum:
 ```powershell
 # Python:
 uv run pre-commit install
-# or: pre-commit install
+uv run pre-commit install --hook-type pre-push
+# or: pre-commit install && pre-commit install --hook-type pre-push
 
 # Node (if husky configured):
 npx husky install
 ```
+
+The `--hook-type pre-push` line wires the version-sync guardrail
+(`scripts/check_version_sync.py`) — blocks `git push --tags` when
+`plugin.json`, CHANGELOG and the pushed tag disagree.
 
 ## Step 5: Run health check
 

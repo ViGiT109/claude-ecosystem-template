@@ -54,8 +54,10 @@ npm install
 ```powershell
 # Python projects with uv:
 uv run pre-commit install
+uv run pre-commit install --hook-type pre-push
 # Python projects with pip:
 pre-commit install
+pre-commit install --hook-type pre-push
 # Node projects:
 npx husky install
 ```
@@ -64,6 +66,8 @@ This activates:
 - Linter enforcement (ruff / eslint)
 - `task.md` guardrail (blocks commit when tasks are unchecked)
 - Dependency sync check
+- **Pre-push:** version-sync guardrail (blocks `git push --tags` when
+  `plugin.json`, CHANGELOG, `.ecosystem.toml` and the pushed tag disagree)
 
 ## Step 4: Health check
 
