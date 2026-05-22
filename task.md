@@ -39,12 +39,12 @@
 - [x] Триггер: age ≥ 30 дней OR `lessons_count() >= 20` → 🟡 `CONSOLIDATE RECOMMENDED`; иначе silent
 - [x] Unit-тесты: 7 лессонов + no consolidate_complete → silent (ниже порога); инжект 20 fake lesson'ов → 🟡 «27 lesson(s), never consolidated»; restore → silent
 
-## Phase 5 — Diagnostic dashboard + `/diag_status` (Layer C)
+## Phase 5 — Diagnostic dashboard + `/diag_status` (Layer C) — **DONE**
 
-- `scripts/diag_dashboard.py` — 6 секций: audits, lessons, retrieval, trajectories, hooks, version-sync
-- `--summary` флаг → 5 строк светофоров
-- `.claude/commands/diag_status.md` — slash-команда, вызывает дашборд `--summary`
-- Unit-тест: прогон на текущем состоянии — без падения, все секции читаемы
+- [x] `scripts/diag_dashboard.py` — 6 секций: Audits (last + trend + sessions-since), Lessons (count + consolidate status), Retrieval mix (mode % + collections), Trajectories (outcomes + avg duration), Hooks (status + last check details), Version sync (3 источника + last tag); все используют общий `_ecosystem_health` модуль
+- [x] `--summary` флаг → 4 строки светофора (audit / lessons / hooks / version)
+- [x] `.claude/commands/diag_status.md` — slash-команда, вызывает дашборд `--summary` и предлагает actions для каждого не-зелёного индикатора
+- [x] Unit-тест: текущее состояние — полный отчёт без падения, summary показывает 🟢 везде
 
 ## Phase 6 — Ecosystem health injection в session_start.py (Layer C)
 

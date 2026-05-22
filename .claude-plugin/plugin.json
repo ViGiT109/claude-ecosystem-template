@@ -13,6 +13,7 @@
     ".claude/commands/commit_and_release.md",
     ".claude/commands/consolidate_lessons.md",
     ".claude/commands/create_spec.md",
+    ".claude/commands/diag_status.md",
     ".claude/commands/extract_lesson.md",
     ".claude/commands/handoff.md",
     ".claude/commands/initialize_project.md",
