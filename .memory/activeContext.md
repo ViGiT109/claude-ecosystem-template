@@ -1,25 +1,25 @@
 # Active Context
 
-> **Updated:** 2026-05-22 — v2.1 spec approved; implementation pending in next session.
+> **Updated:** 2026-05-22 — Phase 2 implementation complete on its branch.
 > Loaded automatically by `session_start.py` hook (first 25 lines).
 
 ## Current Focus
 
-**v2.1 — Hybrid retrieval + trajectory ingest + downstream distribution.** Spec approved 2026-05-22; 4 open questions resolved per recommendations. Implementation split into 4 phases, 4 PRs. Ready to start Phase 1 (`feat/v2.1-phase-1-hybrid-retrieve`).
+**v2.1 Phase 2 — Trajectory ingest** on branch `feat/v2.1-phase-2-trajectory-ingest` (off `main`). All Phase 2 acceptance criteria met locally; commit pending user approval. Phase 1 sits committed locally on its own branch (`feat/v2.1-phase-1-hybrid-retrieve` / `a70de39`) — separate PR.
 
-## Completed this session (2026-05-22)
+## Completed this session (2026-05-22, Phase 2 work)
 
-- Deleted 8 local `feat/v2.0.0-phase-*` + `fix/v2.0.1-audit-followups` branches (locally + on origin) — v2.0.0/v2.0.1 archive now lives only in tags + main history.
-- Removed `tmp_files.txt` debris.
-- Verified v2.0.0 + v2.0.1 already pushed; both GitHub releases published; activeContext was stale.
-- Wrote v2.1 spec: [docs/specs/2026-05-22-v2.1-reasoning-bank-distribution.md](../docs/specs/2026-05-22-v2.1-reasoning-bank-distribution.md). Updated `docs/specs/README.md` index.
-- Resolved 4 open questions: Python `update_ecosystem.py` (not npx), expanded trajectory schema, hybrid as default retrieve mode, sparse-only fallback shipped.
-- Rewrote `task.md` as v2.1 4-phase checklist.
+- `.claude/hooks/session_start.py` — added `record_session_start()` that stamps `.memory/.session_start` (gitignored, single-line JSON `{"started_at": "<ISO UTC>"}`). Idempotent 12 h window.
+- `.gitignore` — added `.memory/.session_start` (ephemeral).
+- `scripts/finalize_session.py::record_session_trajectory()` — rewrote to v2.1 schema: `{date, commit_msg, outcome, task_completion, files_touched, duration_min, tools_used}`. Renamed `files_changed` → `files_touched`. `duration_min` computed from `.memory/.session_start`. `tools_used` placeholder empty list (no aggregator yet; not in acceptance).
+- `scripts/finalize_session.py::ingest_reasoning_bank()` — split into two bounded subprocesses (`ingest_lessons` + `ingest_trajectories`), each writing its own `audit_history.jsonl` row (`event: reasoning_bank_ingest_lessons` / `..._trajectories`). New helper `_run_ingest_op(op)`.
+- `scripts/reasoning_bank.py::parse_trajectories()` — defensive `.get()` for new fields; `files_changed` legacy fallback; embedding `document` unchanged for embedding stability.
+- Smoke-tested end-to-end: parsed legacy + v2.1 + broken rows; `record_session_trajectory()` writes correct schema with `duration_min=7.5` from a seeded start; `ingest_reasoning_bank()` returns dict keyed by op, two distinct events appended to audit_history.
 
 ## Sprint Goals (v2.1)
 
-- [ ] Phase 1 — Hybrid retrieve (BM25 + dense + RRF fusion, `--mode` flag, sparse fallback) — branch `feat/v2.1-phase-1-hybrid-retrieve`
-- [ ] Phase 2 — Trajectory ingest (expanded JSONL schema, dual-collection finalize) — branch `feat/v2.1-phase-2-trajectory-ingest`
+- [x] Phase 1 — Hybrid retrieve (committed `a70de39`, not yet pushed; awaiting PR)
+- [x] Phase 2 — Trajectory ingest (committed locally on this branch; awaiting PR)
 - [ ] Phase 3 — Downstream distribution (`scripts/update_ecosystem.py`) — branch `feat/v2.1-phase-3-update-ecosystem`
 - [ ] Phase 4 — Release v2.1.0 (CHANGELOG, version bump, tag, post-release audit ≥85)
 
@@ -29,13 +29,10 @@ None.
 
 ## Next Steps (start of next session)
 
-1. Read this file + [docs/specs/2026-05-22-v2.1-reasoning-bank-distribution.md](../docs/specs/2026-05-22-v2.1-reasoning-bank-distribution.md) + `task.md`.
-2. **First action:** commit the approved spec to `main`:
-   - `git add docs/specs/2026-05-22-v2.1-reasoning-bank-distribution.md docs/specs/README.md task.md`
-   - `git commit -m "docs(spec): v2.1 — hybrid retrieve + trajectory ingest + downstream distribution"`
-   - Push.
-3. Create `feat/v2.1-phase-1-hybrid-retrieve` off `main` and start Phase 1 per task.md.
-4. Per Phase 1 checklist: add `rank-bm25` to `pyproject.toml::[project.optional-dependencies] reasoning`, implement `_bm25_retrieve` + `_rrf_fuse` in `scripts/reasoning_bank.py`, refactor `retrieve()` to dispatch on `mode`, add `--mode` + `--rrf-k` CLI flags, ensure sparse path works without chromadb.
+1. Decide push/PR strategy for Phase 1 (`feat/v2.1-phase-1-hybrid-retrieve` / `a70de39`) and Phase 2 (this branch). Both are independent per spec L152.
+2. Phase 3 — `scripts/update_ecosystem.py` on `feat/v2.1-phase-3-update-ecosystem` off `main`. Write a fresh `task.md` for it (this one is Phase 2 only).
+3. Phase 4 — release v2.1.0 (CHANGELOG, plugin.json + .ecosystem.toml version bump, tag, post-release audit ≥85).
+4. Optional: extend SessionStart hook to also record `session_id` for cross-correlating trajectories with transcripts; `tools_used` aggregator stays TODO.
 
 ## Resume context
 

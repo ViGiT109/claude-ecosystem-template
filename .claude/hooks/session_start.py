@@ -24,6 +24,8 @@ from pathlib import Path
 PROJECT_DIR = Path(os.environ.get("CLAUDE_PROJECT_DIR", "."))
 PLACEHOLDER = "${PROJECT_NAME}"
 BOOTSTRAP_SCAN_FILES = ("README.md", "CLAUDE.md", ".ecosystem.toml")
+SESSION_START_FILE = PROJECT_DIR / ".memory" / ".session_start"
+SESSION_START_REFRESH_HOURS = 12
 
 # Context window budgets per model (tokens). Used by emit_context_window_status().
 MODEL_WINDOWS = {
@@ -236,6 +238,26 @@ def emit_context_window_status(payload: dict) -> None:
     print()
 
 
+def record_session_start() -> None:
+    """Stamp the current session start time for finalize_session.py to consume.
+
+    Writes `.memory/.session_start` as single-line JSON `{"started_at": "<ISO UTC>"}`.
+    Idempotent within a 12h window — a fresh stamp is only written if the file is
+    missing or older than `SESSION_START_REFRESH_HOURS`. This keeps short hook
+    reruns (e.g. `/new_session` re-invocations) from clobbering the real start.
+    """
+    try:
+        if SESSION_START_FILE.exists():
+            age_h = (dt.datetime.now().timestamp() - SESSION_START_FILE.stat().st_mtime) / 3600
+            if age_h < SESSION_START_REFRESH_HOURS:
+                return
+        SESSION_START_FILE.parent.mkdir(parents=True, exist_ok=True)
+        payload = {"started_at": dt.datetime.now(dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")}
+        SESSION_START_FILE.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+    except OSError:
+        return
+
+
 def emit_git_status() -> None:
     try:
         out = subprocess.run(
@@ -266,6 +288,7 @@ def main() -> int:
         return 0
 
     payload = _read_stdin_json()
+    record_session_start()
 
     print("# 🚀 Project context (auto-injected by SessionStart hook)")
     print()
