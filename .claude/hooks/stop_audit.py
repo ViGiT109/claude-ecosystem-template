@@ -19,6 +19,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Local sibling import — `_ecosystem_health.py` is in the same directory.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _ecosystem_health import audit_age_days  # noqa: E402
+
 PROJECT_DIR = Path(os.environ.get("CLAUDE_PROJECT_DIR", "."))
 AUDIT_LOG = PROJECT_DIR / ".memory" / "audit_history.jsonl"
 
@@ -47,49 +51,6 @@ def count_uncommitted() -> int:
     except (OSError, subprocess.TimeoutExpired):
         return -1
     return sum(1 for ln in (out.stdout or "").splitlines() if ln.strip())
-
-
-def audit_age_days() -> int:
-    """Returns age (in days) of the last `event == "audit_complete"` entry.
-
-    We filter by event type because this hook ALSO writes a `stop_hook` entry
-    on every Claude turn — without filtering, the "last entry" is always
-    seconds old and the freshness signal is meaningless. Only entries appended
-    by `/audit_ecosystem` Phase E count.
-
-    Returns 999 when no `audit_complete` entry exists (treated as "very stale").
-    Supports two timestamp formats: new (`timestamp`, UTC) and legacy (`date`).
-    """
-    if not AUDIT_LOG.exists():
-        return 999
-    last: dt.datetime | None = None
-    try:
-        for raw in AUDIT_LOG.read_text(encoding="utf-8").splitlines():
-            raw = raw.strip()
-            if not raw:
-                continue
-            try:
-                entry = json.loads(raw)
-            except json.JSONDecodeError:
-                continue
-            if entry.get("event") != "audit_complete":
-                continue
-            stamp = entry.get("timestamp") or entry.get("date")
-            if not stamp:
-                continue
-            try:
-                ts = dt.datetime.fromisoformat(stamp.rstrip("Z"))
-            except ValueError:
-                continue
-            if last is None or ts > last:
-                last = ts
-    except OSError:
-        return 999
-
-    if last is None:
-        return 999
-    now = dt.datetime.now(dt.UTC).replace(tzinfo=None)
-    return (now - last).days
 
 
 def main() -> int:

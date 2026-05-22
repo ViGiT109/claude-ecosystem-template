@@ -25,3 +25,4 @@
 {"timestamp": "2026-05-22T23:48:18Z", "event": "hook_health_check", "status": "degraded", "checked": 4, "failed_hooks": [{"event": "UserPromptSubmit", "script": ".claude/hooks/planning_hint.py", "status": "failed", "detail": "exit=1;     SYNTAX ERROR INJECTED |            ^^^^^ | SyntaxError: invalid syntax"}]}
 {"timestamp": "2026-05-22T23:48:18Z", "event": "hook_health_check", "status": "ok", "checked": 4, "failed_hooks": []}
 {"timestamp": "2026-05-22T23:48:48Z", "event": "hook_health_check", "status": "ok", "checked": 4, "failed_hooks": []}
+{"timestamp": "2026-05-22T23:53:01Z", "event": "stop_hook", "task_md_open": 0, "uncommitted": 3, "audit_age_days": -1}

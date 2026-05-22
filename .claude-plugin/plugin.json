@@ -18,6 +18,7 @@
     ".claude/commands/model_check.md",
     ".claude/commands/new_session.md",
     ".claude/commands/setup_environment.md",
+    ".claude/hooks/_ecosystem_health.py",
     ".claude/hooks/_run.py",
     ".claude/hooks/block_no_verify.py",
     ".claude/hooks/planning_hint.py",

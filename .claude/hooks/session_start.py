@@ -21,6 +21,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Local sibling import — `_ecosystem_health.py` is in the same directory.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _ecosystem_health as _eh  # noqa: E402
+
 PROJECT_DIR = Path(os.environ.get("CLAUDE_PROJECT_DIR", "."))
 PLACEHOLDER = "${PROJECT_NAME}"
 BOOTSTRAP_SCAN_FILES = ("README.md", "CLAUDE.md", ".ecosystem.toml")
@@ -104,55 +108,28 @@ def emit_lessons_freshness() -> None:
 
 
 def emit_audit_freshness() -> None:
-    """Emit a 🟡 reminder when no full ecosystem audit has run in >14 days.
+    """Emit an ecosystem-audit freshness marker.
 
-    The check looks at `.memory/audit_history.jsonl` and considers ONLY entries
-    where `event == "audit_complete"` — those are appended by `/audit_ecosystem`
-    after Phase E. Routine `stop_hook` entries (one per Claude turn) are ignored
-    because they would otherwise mask the actual audit cadence.
+    Three states (computed by `_ecosystem_health.audit_status()`):
+    - `required` — 🔴 AUDIT REQUIRED, blocking signal (age ≥ 7 days OR
+       ≥ 20 stop_hook events since last audit_complete). The agent should
+       launch the `ecosystem-auditor` subagent this turn.
+    - `aging`    — 🟡 audit aging, soft warning (3–7 days).
+    - `ok`       — silent (no noise on every session start).
     """
-    path = PROJECT_DIR / ".memory" / "audit_history.jsonl"
-    threshold_days = 14
-
-    if not path.exists():
-        print("## 📊 audit: 🟡 audit_history.jsonl missing — run `/audit_ecosystem` to start tracking")
+    status, reason = _eh.audit_status()
+    if status == "required":
+        last = _eh.last_audit_info()
+        tag = (last or {}).get("tag_under_audit", "")
+        window_hint = f"`{tag}..HEAD`" if tag else "`<last_audit_sha>..HEAD`"
+        print("## 🔴 AUDIT REQUIRED")
+        print(f"- {reason}")
+        print(f"- Action: launch `ecosystem-auditor` subagent with window {window_hint}")
         print()
-        return
-
-    last_complete: dt.datetime | None = None
-    try:
-        for raw in path.read_text(encoding="utf-8").splitlines():
-            raw = raw.strip()
-            if not raw:
-                continue
-            try:
-                entry = json.loads(raw)
-            except json.JSONDecodeError:
-                continue
-            if entry.get("event") != "audit_complete":
-                continue
-            stamp = entry.get("timestamp") or entry.get("date")
-            if not stamp:
-                continue
-            try:
-                ts = dt.datetime.fromisoformat(stamp.rstrip("Z"))
-            except ValueError:
-                continue
-            if last_complete is None or ts > last_complete:
-                last_complete = ts
-    except OSError:
-        return
-
-    if last_complete is None:
-        print("## 📊 audit: 🟡 no `/audit_ecosystem` runs recorded — consider running one")
+    elif status == "aging":
+        print(f"## 📊 audit: 🟡 audit aging — {reason}")
         print()
-        return
-
-    age_days = (dt.datetime.utcnow() - last_complete).days
-    if age_days > threshold_days:
-        print(f"## 📊 audit: 🟡 last full audit was {age_days} days ago — run `/audit_ecosystem`")
-        print()
-    # Fresh → silent (avoid noise on every session start).
+    # status == "ok" → silent
 
 
 def _read_stdin_json() -> dict:

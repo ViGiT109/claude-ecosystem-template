@@ -25,13 +25,12 @@
 - [x] Новый раздел «Hooks» в `scripts/health_check.py` — вызывает `check_hook_health.py`, прокидывает результат в overall pass/fail
 - [x] Unit-тест: инжект SyntaxError в `planning_hint.py` → exit 1 с тэйлом ошибки в `failed_hooks[].detail`; restore → exit 0; обе попытки записаны в `audit_history.jsonl`
 
-## Phase 3 — Auto-audit trigger в session_start.py (Layer B)
+## Phase 3 — Auto-audit trigger в session_start.py (Layer B) — **DONE**
 
-- `.claude/hooks/_ecosystem_health.py` (новый) — общий stdlib-модуль: чтение журналов, freshness computation, formatting
-- Перенос `audit_age_days()` из `stop_audit.py:52-92` в `_ecosystem_health.py`; `stop_audit.py` импортирует
-- Расширение `emit_audit_freshness()` в `session_start.py`: age > 7 OR stop_hook_count > 20 → 🔴 `AUDIT REQUIRED` с окном `<last_audit_tag>..HEAD`
-- Age 3–7 дней → 🟡 `audit aging`
-- Unit-тест: подмена timestamp → корректный маркер
+- [x] `.claude/hooks/_ecosystem_health.py` — общий stdlib-only модуль: `audit_age_days`, `stop_hook_count_since_audit`, `last_audit_info`, `consolidate_age_days`, `hook_health_age_hours`, `lessons_count`; combined verdict helpers `audit_status` / `consolidate_status` / `hook_health_status`; пороги (AUDIT_REQUIRED_DAYS=7, AUDIT_AGING_DAYS=3, AUDIT_REQUIRED_STOP_HOOKS=20, …) — единый источник правды
+- [x] `stop_audit.py` импортирует `audit_age_days` из `_ecosystem_health` (sys.path тюнинг для sibling import); локальная копия удалена
+- [x] `emit_audit_freshness()` переписан на `audit_status()` — три состояния: 🔴 `AUDIT REQUIRED` (age≥7 OR stop_hook_count≥20) + window-hint из `last_audit_info().tag_under_audit`; 🟡 `audit aging` (3-7 дней); silent (<3 дней)
+- [x] Unit-тесты (подмена timestamp в audit_history.jsonl): 13 дней назад → 🔴 + window `v2.0.0..HEAD`; 4 дня назад → 🟡 «audit aging — last audit 4 day(s) ago»; current → silent; stop_audit.py end-to-end не сломан
 
 ## Phase 4 — Consolidate-memory trigger (Layer B)
 
