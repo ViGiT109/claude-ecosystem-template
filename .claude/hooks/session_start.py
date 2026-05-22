@@ -283,6 +283,11 @@ def emit_git_status() -> None:
 
 
 def main() -> int:
+    # Dry-run mode — used by `scripts/check_hook_health.py` to verify the hook
+    # loads without import/syntax errors. Skips inject output and side effects.
+    if os.environ.get("HOOK_DRYRUN") == "1":
+        return 0
+
     # Bootstrap guard runs first and short-circuits the normal session preamble.
     if check_bootstrap_done():
         return 0

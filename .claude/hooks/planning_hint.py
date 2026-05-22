@@ -83,6 +83,10 @@ def _emit_block(trigger: str) -> None:
 
 
 def main() -> int:
+    # Dry-run mode — used by `scripts/check_hook_health.py`.
+    if os.environ.get("HOOK_DRYRUN") == "1":
+        return 0
+
     if os.environ.get("CLAUDE_DISABLE_PLANNING_HINT") == "1":
         return 0
 

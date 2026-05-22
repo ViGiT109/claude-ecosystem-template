@@ -12,6 +12,7 @@ Hook protocol (Claude Code):
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 
@@ -23,6 +24,10 @@ NO_VERIFY_RE = re.compile(
 
 
 def main() -> int:
+    # Dry-run mode — used by `scripts/check_hook_health.py`.
+    if os.environ.get("HOOK_DRYRUN") == "1":
+        return 0
+
     try:
         payload = json.load(sys.stdin)
     except (json.JSONDecodeError, ValueError):

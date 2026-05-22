@@ -93,6 +93,12 @@ def audit_age_days() -> int:
 
 
 def main() -> int:
+    # Dry-run mode — used by `scripts/check_hook_health.py` to verify the hook
+    # loads without import/syntax errors. Skips audit_history.jsonl write and
+    # stdout reminder output.
+    if os.environ.get("HOOK_DRYRUN") == "1":
+        return 0
+
     notes: list[str] = []
 
     abandoned = check_task_md()

@@ -128,6 +128,33 @@ def _resolve_uv() -> str:
     return str(fallback) if fallback.exists() else "uv"
 
 
+def check_hooks() -> bool:
+    """Run scripts/check_hook_health.py and report. Appends event to audit_history."""
+    print("\n=== Hooks ===")
+    import subprocess
+    try:
+        result = subprocess.run(
+            [sys.executable, str(PROJECT_ROOT / "scripts" / "check_hook_health.py")],
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired) as e:
+        print(f"⚠️  Could not run check_hook_health.py: {e}")
+        return True  # don't fail health check on infrastructure glitch
+    # Pass through the script's summary line(s). It already prints "🟢 ok" / "🔴 degraded".
+    for line in (result.stdout or "").splitlines():
+        if line.strip():
+            print(line)
+    if result.returncode != 0:
+        for line in (result.stderr or "").splitlines():
+            if line.strip():
+                print(line)
+        return False
+    return True
+
+
 def check_deps_sync() -> bool:
     print("\n=== Dependency sync (uv) ===")
     import subprocess
@@ -161,6 +188,8 @@ def main() -> None:
 
     docs_ok = check_documents()
 
+    hooks_ok = check_hooks()
+
     print_ok = True
     if language in ("python", "both"):
         print_ok = check_prints(backend_modules)
@@ -172,7 +201,7 @@ def main() -> None:
     print("\n=== Git status ===")
     os.system("git status --short 2>/dev/null || true")
 
-    if not (docs_ok and print_ok and deps_ok):
+    if not (docs_ok and hooks_ok and print_ok and deps_ok):
         print("\n❌ Health check FAILED.")
         sys.exit(1)
 

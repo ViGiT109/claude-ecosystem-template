@@ -21,3 +21,7 @@
 {"timestamp": "2026-05-23T00:30:00Z", "event": "audit_complete", "rating": "🟢", "score": 92, "mode": "post-release", "window": "c6632b7..HEAD", "tag_under_audit": "v2.1.1", "source": "ecosystem-auditor subagent", "findings": ["All 3 v2.1.0 gaps closed (.ecosystem.toml synced, session_trajectories.jsonl non-empty, Phase Release in task.md)", "path-bug update_ecosystem.py::get_upstream_version() fixed", "3 new lessons recorded", "P3 observation: activeContext.md Sprint Goals still shows [ ] Phase 4 — cosmetic narrative desync", "P2 observation: session_trajectories.jsonl row is smoke-fixture with empty files_touched/tools_used"]}
 {"timestamp": "2026-05-22T23:09:29Z", "event": "stop_hook", "task_md_open": 0, "uncommitted": 0, "audit_age_days": -1}
 {"timestamp": "2026-05-22T23:24:04Z", "event": "stop_hook", "task_md_open": 0, "uncommitted": 1, "audit_age_days": -1}
+{"timestamp": "2026-05-22T23:48:09Z", "event": "hook_health_check", "status": "ok", "checked": 4, "failed_hooks": []}
+{"timestamp": "2026-05-22T23:48:18Z", "event": "hook_health_check", "status": "degraded", "checked": 4, "failed_hooks": [{"event": "UserPromptSubmit", "script": ".claude/hooks/planning_hint.py", "status": "failed", "detail": "exit=1;     SYNTAX ERROR INJECTED |            ^^^^^ | SyntaxError: invalid syntax"}]}
+{"timestamp": "2026-05-22T23:48:18Z", "event": "hook_health_check", "status": "ok", "checked": 4, "failed_hooks": []}
+{"timestamp": "2026-05-22T23:48:48Z", "event": "hook_health_check", "status": "ok", "checked": 4, "failed_hooks": []}

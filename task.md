@@ -17,13 +17,13 @@
 - [x] Pre-push hook установлен локально (`.git/hooks/pre-push`)
 - [x] Unit-тесты: drift detection (plugin.json=9.9.9) → exit 1; restore → exit 0; pre-push stdin (4 кейса: wrong tag, correct tag, branch, deletion) — все корректны
 
-## Phase 2 — Hook health-check (Layer A + B)
+## Phase 2 — Hook health-check (Layer A + B) — **DONE**
 
-- `scripts/check_hook_health.py` — все хуки в `.claude/settings.json` существуют и не падают на синтетическом stdin
-- Dry-run mode (`HOOK_DRYRUN=1`) в каждом существующем хуке — early-return после parse
-- Пишет `{"event": "hook_health_check", ...}` в `.memory/audit_history.jsonl`
-- Новый раздел «Hooks» в `scripts/health_check.py`
-- Unit-тест: ломаем target в settings.json → exit с описанием; чиним → чисто
+- [x] `scripts/check_hook_health.py` — парсит `.claude/settings.json::hooks`, для каждого хука: проверяет существование файла, запускает с `HOOK_DRYRUN=1` + пустым JSON stdin, проверяет exit 0
+- [x] Dry-run mode (`HOOK_DRYRUN=1`) добавлен во все 4 хука: `session_start.py`, `stop_audit.py`, `planning_hint.py`, `block_no_verify.py` — early-return после imports
+- [x] Пишет `{"event": "hook_health_check", "status": "ok"|"degraded", "checked": N, "failed_hooks": [...]}` в `.memory/audit_history.jsonl`
+- [x] Новый раздел «Hooks» в `scripts/health_check.py` — вызывает `check_hook_health.py`, прокидывает результат в overall pass/fail
+- [x] Unit-тест: инжект SyntaxError в `planning_hint.py` → exit 1 с тэйлом ошибки в `failed_hooks[].detail`; restore → exit 0; обе попытки записаны в `audit_history.jsonl`
 
 ## Phase 3 — Auto-audit trigger в session_start.py (Layer B)
 
