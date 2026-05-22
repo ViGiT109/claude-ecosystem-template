@@ -20,9 +20,44 @@
 - [x] Each writes its own `audit_history.jsonl` row
 - [x] `parse_trajectories()` defensive `.get()` + legacy `files_changed` fallback
 
-## Phase 3 — Downstream distribution — **NEXT**
+## Phase 3 — Downstream distribution — **DONE**
 
-Branch: `feat/v2.1-phase-3-update-ecosystem`. Scope and acceptance criteria defined in spec.
+Реализовано в `main`. Файл: [scripts/update_ecosystem.py](scripts/update_ecosystem.py).
+
+### Командная строка
+- [x] `argparse`: `--from <путь|git-url>` (обязательный), `--apply`, `--exclude <маска>` (повторяемый), `--force`, `--project <каталог>`
+- [x] `--help` описывает безопасный режим по умолчанию (без записи; не трогает `.memory/` / `.env*` / `task.md`)
+
+### Поиск шаблона-источника
+- [x] git-URL → `git clone --depth=1` во временный каталог, удаление в `finally`
+- [x] локальный путь — используется как есть
+- [x] отклоняем то, что не похоже на шаблон (нет `.claude/` и `.agents/`)
+
+### Логика сравнения
+- [x] Множество для синхронизации: `.claude/`, `.agents/`, `scripts/`, `AGENTS.md`
+- [x] Защищённые: `.memory/`, `.env*`, `task.md`, `.git/`, `.venv/`, `node_modules/`, `__pycache__/`, `.ecosystem.toml`
+- [x] Классификация каждого файла: `new` / `modified` / `unchanged` / `blocked`
+- [x] Локальные файлы вне шаблона не трогаются (только добавляем и обновляем, не удаляем)
+- [x] `--exclude` через `fnmatch`
+
+### Защита контрольными суммами
+- [x] Чтение секции `[ecosystem.file_shas]` из локального `.ecosystem.toml`; отсутствует → первый запуск
+- [x] Локальная sha256, не совпадающая со слепком и с шаблоном → ручная правка → нужен `--force`
+- [x] Без `--force` файлы помечаются `blocked`, при `--apply` выход с кодом 1
+
+### Вывод
+- [x] План сгруппирован по статусам, в конце — счётчики
+- [x] При `--apply` обновляется секция `[ecosystem]` в `.ecosystem.toml` (`version` из `plugin.json` шаблона, `upstream_sha` из `git rev-parse`, `file_shas`)
+
+### Проверки
+- [x] Идемпотентность: `python scripts/update_ecosystem.py --from .` → 0 изменений (45 unchanged)
+- [x] Дымовой тест во временном каталоге: пустой → 45 new → копируем → второй прогон 45 unchanged → правим вручную → 1 blocked → `--force` → 1 modified
+- [x] Холостой прогон ничего не пишет (запись только под `if args.apply`)
+- [x] Защищённые файлы (`.memory/should_not_be_touched.md`, `.env`, `task.md`) во время теста не тронуты
+
+### Документация
+- [x] `TEMPLATE_README.md` §"Keeping the template up to date" переписан под новый скрипт
+- [x] Секция `[ecosystem]` в `.ecosystem.toml` описана там же как формат слепка
 
 ## Phase 4 — Release v2.1.0
 

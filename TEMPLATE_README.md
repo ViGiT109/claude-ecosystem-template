@@ -123,14 +123,30 @@ scripts/
 ## Keeping the template up to date
 
 The AI infrastructure (hooks, commands, agents) evolves independently of project state.
-To update a project's infrastructure from a newer template version:
+Since v2.1 there is a built-in sync tool — `scripts/update_ecosystem.py`:
 
-1. Compare the `C:\claude-ecosystem-template\.claude\` directory with your project's `.claude\`.
-2. Copy updated files manually (or via a diff tool).
-3. Test hooks fire correctly (`/new_session`, commit attempt).
+```bash
+# Dry-run (default): show what would change, write nothing
+python scripts/update_ecosystem.py --from <path-or-git-url>
 
-A future improvement: publish the `.claude/` layer as an installable Claude Code plugin
-so projects can `npx update-ecosystem` instead.
+# Apply the plan
+python scripts/update_ecosystem.py --from <path-or-git-url> --apply
+
+# Skip a subtree
+python scripts/update_ecosystem.py --from <upstream> --apply --exclude '.claude/skills/*'
+
+# Overwrite hand-edited files (SHA-protected by default)
+python scripts/update_ecosystem.py --from <upstream> --apply --force
+```
+
+The script syncs `.claude/`, `.agents/`, `scripts/` and `AGENTS.md`. It **never** touches
+`.memory/`, `.env*`, `task.md`, `.git/`. Hand-edits are detected via a SHA snapshot
+stored under `[ecosystem.file_shas]` in `.ecosystem.toml` — modified files are listed as
+`blocked` and require `--force` to overwrite. After an `--apply`, the script refreshes the
+snapshot and records the upstream commit in `.ecosystem.toml::ecosystem.upstream_sha`.
+
+Manual diffing remains an option if you want full control — the script's dry-run mode
+prints a per-file plan first.
 
 ---
 
