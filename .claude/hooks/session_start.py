@@ -115,7 +115,7 @@ def emit_audit_freshness() -> None:
     threshold_days = 14
 
     if not path.exists():
-        print(f"## 📊 audit: 🟡 audit_history.jsonl missing — run `/audit_ecosystem` to start tracking")
+        print("## 📊 audit: 🟡 audit_history.jsonl missing — run `/audit_ecosystem` to start tracking")
         print()
         return
 
@@ -144,7 +144,7 @@ def emit_audit_freshness() -> None:
         return
 
     if last_complete is None:
-        print(f"## 📊 audit: 🟡 no `/audit_ecosystem` runs recorded — consider running one")
+        print("## 📊 audit: 🟡 no `/audit_ecosystem` runs recorded — consider running one")
         print()
         return
 
