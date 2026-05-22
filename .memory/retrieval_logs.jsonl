@@ -1,0 +1,6 @@
+{"timestamp": "2026-05-21T22:23:16.518152+00:00", "query": "audit_history", "collection": "lessons", "mode": "sparse", "retrieved_ids": ["lesson-003"]}
+{"timestamp": "2026-05-21T22:23:24.302005+00:00", "query": "when did we last audit the ecosystem", "collection": "lessons", "mode": "sparse", "retrieved_ids": ["lesson-003", "lesson-002", "lesson-004"]}
+{"timestamp": "2026-05-21T22:23:25.791001+00:00", "query": "audit_history", "collection": "lessons", "mode": "hybrid", "retrieved_ids": ["lesson-003"]}
+{"timestamp": "2026-05-21T22:23:58.716109+00:00", "query": "audit_history", "collection": "lessons", "mode": "sparse", "retrieved_ids": ["lesson-003"]}
+{"timestamp": "2026-05-21T22:23:58.717436+00:00", "query": "when did we last audit the ecosystem", "collection": "lessons", "mode": "sparse", "retrieved_ids": ["lesson-003", "lesson-002", "lesson-004", "lesson-001"]}
+{"timestamp": "2026-05-21T22:23:58.720184+00:00", "query": "audit_history", "collection": "lessons", "mode": "hybrid", "retrieved_ids": ["lesson-003"]}

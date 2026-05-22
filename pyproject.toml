@@ -1,0 +1,24 @@
+[project]
+name = "claude-ecosystem-template"
+version = "2.1.0"
+description = "AI-agent ecosystem template — rules, hooks, memory, ReasoningBank."
+requires-python = ">=3.11"
+dynamic = ["dependencies"]
+
+[project.optional-dependencies]
+# Semantic memory + hybrid retrieval (ReasoningBank).
+# All ReasoningBank deps are lazy-imported; install only if you use that subsystem.
+reasoning = [
+  "rank-bm25>=0.2",
+  "chromadb>=0.5",
+  "sentence-transformers>=3.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+# Template repo — no installable package; this section exists only to expose
+# [project.optional-dependencies] for `pip install .[reasoning]`.
+py-modules = []
