@@ -54,23 +54,17 @@
 - [x] Светофор-логика и version-sync чтение — из `_ecosystem_health` модуля + stdlib (json/re для plugin.json + CHANGELOG)
 - [x] Unit-тест: новая сессия → блок виден в инжекте, все 4 индикатора 🟢, версии 2.1.1 совпадают
 
-## Phase 7 — Release v2.2.0
+## Phase 7 — Release v2.2.0 (prep) — **DONE**
 
 ### Prep
-- Bump `.claude-plugin/plugin.json::version` 2.1.1 → 2.2.0
-- `python scripts/update_ecosystem.py --from . --apply` — синк `.ecosystem.toml::ecosystem.version`
-- CHANGELOG §[2.2.0] — описаны все 6 фаз + Layer A/B/C группировка
+- [x] Bump `.claude-plugin/plugin.json::version` 2.1.1 → 2.2.0
+- [x] `python scripts/update_ecosystem.py --from . --apply` — синк `.ecosystem.toml::ecosystem.version` (51 unchanged, секция [ecosystem] обновлена с version=2.2.0)
+- [x] CHANGELOG §[2.2.0] — описаны все 6 фаз с Layer A/B/C группировкой + Added/Changed/Fixed
+- [x] Standalone check_version_sync.py: ✅ versions in sync (plugin.json=CHANGELOG=.ecosystem.toml=2.2.0)
 
-### Self-test pre-push guardrail
-- Намеренно расходим `.ecosystem.toml::version` ≠ `plugin.json` → `git push --tags` → блокировано (вернуть)
-- Восстанавливаем синхронность → push идёт чисто
+### Pending closure (отдельный state-sync коммит ПОСЛЕ тега и аудита)
 
-### Release
-- Релизный коммит `release: v2.2.0 — self-diagnostic ecosystem`
-- Аннотированный тег `v2.2.0`
-- Push с `--follow-tags` (проходит свой собственный pre-push guardrail)
-
-### Post-release
-- Пост-релизный аудит сабагентом `ecosystem-auditor` → ≥ 85/100
-- Если < 85 → автономно собрать v2.2.1 хотфикс (feedback_autonomous_decisions)
-- `activeContext.md` синхронизирован, Sprint Goals все `[x]`
+- Self-test: temp-тег v9.9.9 → push блокирован pre-push guardrail → удалить
+- Аннотированный тег v2.2.0 + push --follow-tags (свой pre-push guardrail должен пройти)
+- Post-release audit сабагентом → ≥ 85/100 (иначе хотфикс v2.2.1)
+- activeContext.md синхронизирован, Sprint Goals [x]

@@ -13,6 +13,102 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [2.2.0] — 2026-05-23
+
+Self-Diagnostic Ecosystem. Шесть фаз в `main`, три слоя гарантий: A —
+детерминистические guardrail'ы (нельзя обойти), B — session-triggered
+cron (триггер = открытие новой сессии, без OS-cron — портируется),
+C — observability (дашборд и компактный health-блок в инжекте).
+
+Ключевая архитектурная идея: **session-triggered cron**. Не OS-level
+cron, не Anthropic-hosted scheduled-tasks. `session_start.py` считает
+«долги» по журналам в `.memory/` и эмитит `🔴 X REQUIRED` / `🟡 X
+RECOMMENDED` маркеры. Агент видит → запускает работу → пишет в журнал
+→ долг сбрасывается до следующего цикла. Кросс-платформенно
+(Win/macOS/Linux), self-contained в шаблоне.
+
+### Added — Layer A (deterministic guardrails)
+
+- **Pre-push version-sync guardrail** (`scripts/check_version_sync.py`).
+  Блокирует `git push --tags`, если рассинхронизированы
+  `.claude-plugin/plugin.json::version` ↔ последнее `## [X.Y.Z]` в
+  CHANGELOG ↔ имя push'имого тега ↔ `.ecosystem.toml::ecosystem.version`
+  (если есть). Standalone CLI + `--pre-push` режим (читает git stdin
+  per `githooks(5)`). Зарегистрирован в `.pre-commit-config.yaml` со
+  `stages: [pre-push]`. Включается через
+  `pre-commit install --hook-type pre-push` (добавлено в setup-доки).
+- **Hook health-check** (`scripts/check_hook_health.py`). Парсит
+  `.claude/settings.json::hooks`, для каждого хука: проверяет
+  существование файла, запускает с `HOOK_DRYRUN=1` + пустым JSON
+  stdin, таймаут 10s. Пишет `{"event": "hook_health_check", "status":
+  "ok"|"degraded", "failed_hooks": [...]}` в audit_history.jsonl.
+  Поддерживает `--verbose`. Дополнен раздел «Hooks» в
+  `scripts/health_check.py`.
+- **Dry-run mode (`HOOK_DRYRUN=1`)** в каждом из 4 существующих
+  хуков — early-return для безопасной проверки без side effects.
+
+### Added — Layer B (session-triggered cron)
+
+- **`.claude/hooks/_ecosystem_health.py`** — общий stdlib-only модуль
+  с helper'ами: `audit_age_days`, `stop_hook_count_since_audit`,
+  `last_audit_info`, `consolidate_age_days`, `hook_health_age_hours`,
+  `lessons_count`. Combined verdict helpers: `audit_status` /
+  `consolidate_status` / `hook_health_status`. Пороги
+  (AUDIT_REQUIRED_DAYS=7, AUDIT_REQUIRED_STOP_HOOKS=20,
+  CONSOLIDATE_RECOMMENDED_DAYS=30, HOOK_HEALTH_STALE_HOURS=24, …)
+  живут здесь — единый источник правды для инжекта и дашборда.
+- **Auto-audit trigger** в `session_start.py::emit_audit_freshness()`.
+  Три состояния: 🔴 `AUDIT REQUIRED` (age≥7 OR stop_hook_count≥20) с
+  window-hint `<last_audit_tag>..HEAD`; 🟡 `audit aging` (3-7 дней);
+  silent (<3 дней).
+- **Consolidate-memory trigger** в
+  `session_start.py::emit_consolidate_freshness()` (симметрично).
+  🟡 `CONSOLIDATE RECOMMENDED` если age ≥ 30 дней OR
+  `lessons_count() >= 20`.
+- **`/consolidate_lessons`** slash-команда — триггерит
+  `anthropic-skills:consolidate-memory` и записывает
+  `consolidate_complete` event в audit_history.jsonl.
+- **New event types** в audit_history.jsonl: `hook_health_check`,
+  `consolidate_complete`. Append-only, фильтрация по `event` field
+  (lesson «append-only logs need event filters» применён).
+
+### Added — Layer C (observability)
+
+- **`scripts/diag_dashboard.py`** — markdown-отчёт по всем журналам:
+  6 секций (Audits trend, Lessons + consolidate status, Retrieval mix,
+  Trajectories outcomes, Hooks health, Version sync). `--summary` флаг
+  → 4 строки светофоров. Использует общий `_ecosystem_health` модуль
+  (одни и те же светофоры в инжекте и дашборде).
+- **`/diag_status`** slash-команда — вызывает дашборд `--summary`,
+  предлагает actions для каждого не-зелёного индикатора.
+- **Unified `## 📊 Ecosystem health` блок** в инжекте session_start.py.
+  4 строки (audit / lessons / hooks / version sync) — всегда выводится,
+  заменяет старый `emit_lessons_freshness()`. Action-блоки
+  (🔴 AUDIT REQUIRED / 🟡 CONSOLIDATE RECOMMENDED) остались ВЫШЕ
+  summary для урgent видимости.
+
+### Changed
+
+- `plugin.json` 2.1.1 → 2.2.0.
+- `.ecosystem.toml::ecosystem.version` обновлён через
+  `update_ecosystem.py --apply` (self-sync).
+- `.pre-commit-config.yaml` — добавлен `check-version-sync` блок со
+  `stages: [pre-push]`.
+- `scripts/health_check.py` — новый раздел «Hooks» (вызывает
+  `check_hook_health.py`, прокидывает результат в overall pass/fail).
+- Setup-доки (`setup_environment.md`, `ENVIRONMENT_SETUP.md`,
+  `deploy-fresh/SKILL.md`) — инструкция запустить
+  `pre-commit install --hook-type pre-push`.
+
+### Fixed
+
+- `session_start.py` — два f-string без плейсхолдеров (ruff F541),
+  пред-существующий долг, exposed первым прогоном pre-push hook'а
+  (запускает все pre-commit hook'и по умолчанию, включая ruff поверх
+  всего репо).
+
+---
+
 ## [2.1.1] — 2026-05-23
 
 Hotfix bundle from the post-v2.1.0 audit (🟡 80/100 — three gaps recorded in
