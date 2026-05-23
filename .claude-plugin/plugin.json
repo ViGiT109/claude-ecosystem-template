@@ -27,6 +27,7 @@
     ".claude/hooks/session_start.py",
     ".claude/hooks/statusline.py",
     ".claude/hooks/stop_audit.py",
+    ".claude/hooks/track_tools.py",
     ".claude/skills/clean-workspace/SKILL.md",
     ".claude/skills/deploy-fresh/SKILL.md"
   ],

@@ -10,7 +10,7 @@
 ## Sprint Goals (v2.3)
 
 - [x] Phase 1 — Promote «Sprint Goals desync» lesson → rule + pre-commit guardrail
-- [ ] Phase 2 — Tools usage tracking (in-process aggregator для `tools_used`)
+- [x] Phase 2 — Tools usage tracking (PostToolUse aggregator + `tools_used` в audit_history)
 - [ ] Phase 3 — Lesson auto-promotion (semantic detection, опционально)
 - [ ] Phase N — Release v2.3.0
 

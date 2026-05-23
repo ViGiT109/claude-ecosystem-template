@@ -25,6 +25,8 @@ from _ecosystem_health import audit_age_days  # noqa: E402
 
 PROJECT_DIR = Path(os.environ.get("CLAUDE_PROJECT_DIR", "."))
 AUDIT_LOG = PROJECT_DIR / ".memory" / "audit_history.jsonl"
+SESSION_TOOLS = PROJECT_DIR / ".memory" / ".session_tools.json"
+SESSION_TOOLS_TTL_DAYS = 7
 
 
 def check_task_md() -> list[str]:
@@ -36,6 +38,59 @@ def check_task_md() -> list[str]:
         if re.match(r"\s*-\s*\[[ /]\]", line):
             abandoned.append(f"task.md:{i}: {line.strip()}")
     return abandoned
+
+
+def consume_session_tools(session_id: str | None) -> dict[str, int]:
+    """Read tool-usage counter for this session, clear it, prune stale buckets.
+
+    Returns the per-tool count dict (`{tool_name: count}`) accumulated since
+    the last Stop hook for this session. Returns `{}` on any IO/parse error or
+    when no bucket exists (sessions with zero tool calls).
+
+    Stale buckets (`_updated` older than SESSION_TOOLS_TTL_DAYS) are GC'd in
+    the same write so the file stays bounded even if Stop never fires for
+    some crashed session.
+    """
+    if not SESSION_TOOLS.is_file():
+        return {}
+    try:
+        data = json.loads(SESSION_TOOLS.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+    if not isinstance(data, dict):
+        return {}
+
+    # Pop current session's bucket.
+    bucket = data.pop(session_id, None) if session_id else None
+    tools = bucket.get("tools", {}) if isinstance(bucket, dict) else {}
+
+    # GC stale buckets (best-effort; ignore malformed entries).
+    cutoff = dt.datetime.now(dt.UTC) - dt.timedelta(days=SESSION_TOOLS_TTL_DAYS)
+    for sid in list(data.keys()):
+        entry = data.get(sid)
+        if not isinstance(entry, dict):
+            data.pop(sid, None)
+            continue
+        ts = entry.get("_updated") or ""
+        try:
+            when = dt.datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=dt.UTC)
+        except ValueError:
+            data.pop(sid, None)
+            continue
+        if when < cutoff:
+            data.pop(sid, None)
+
+    try:
+        SESSION_TOOLS.parent.mkdir(parents=True, exist_ok=True)
+        SESSION_TOOLS.write_text(
+            json.dumps(data, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+    except OSError:
+        pass  # best-effort; data already captured for the entry
+
+    return tools if isinstance(tools, dict) else {}
 
 
 def count_uncommitted() -> int:
@@ -60,6 +115,21 @@ def main() -> int:
     if os.environ.get("HOOK_DRYRUN") == "1":
         return 0
 
+    # Best-effort stdin parse — Claude Code passes a JSON payload with
+    # `session_id`, `transcript_path`, `stop_hook_active`. Used here only to
+    # pick the matching bucket from `.session_tools.json`. Tolerate missing
+    # stdin entirely (e.g. manual invocation).
+    session_id: str | None = None
+    try:
+        raw = sys.stdin.read() if not sys.stdin.isatty() else ""
+        if raw:
+            payload = json.loads(raw)
+            sid = payload.get("session_id")
+            if isinstance(sid, str) and sid:
+                session_id = sid
+    except (json.JSONDecodeError, OSError, ValueError):
+        pass
+
     notes: list[str] = []
 
     abandoned = check_task_md()
@@ -74,6 +144,8 @@ def main() -> int:
     if age > 14:
         notes.append(f"📊 audit_history.jsonl is {age} days old (run `/audit_ecosystem`)")
 
+    tools_used = consume_session_tools(session_id)
+
     # Always log (append-only) for session history
     entry = {
         "timestamp": dt.datetime.now(dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -81,6 +153,7 @@ def main() -> int:
         "task_md_open": len(abandoned),
         "uncommitted": uncommitted,
         "audit_age_days": age,
+        "tools_used": tools_used,
     }
     try:
         AUDIT_LOG.parent.mkdir(parents=True, exist_ok=True)

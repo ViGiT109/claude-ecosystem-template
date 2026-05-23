@@ -60,3 +60,7 @@ desktop.ini
 
 # Ephemeral session start timestamp (written by session_start hook, consumed by finalize_session)
 .memory/.session_start
+
+# Ephemeral tool-usage counters (written by track_tools PostToolUse hook,
+# consumed + GC'd by stop_audit on every Stop hook). Per-session state, not project state.
+.memory/.session_tools.json
