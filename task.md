@@ -104,7 +104,7 @@
 - [x] plugin.json 2.2.0 → 2.2.1
 - [x] `.ecosystem.toml::ecosystem.version` синхронизирован (через update_ecosystem.py --apply)
 
-### Pending closure (отдельный state-sync коммит ПОСЛЕ тега и re-audit)
-
-- Аннотированный тег v2.2.1 + push --follow-tags (через .githooks/ shim — должен пройти)
-- Re-audit сабагентом → ≥ 85/100 (иначе следующий хотфикс v2.2.2)
+### Release closure
+- [x] Аннотированный тег `v2.2.1` создан и запушен (`8ce4b45` через свой собственный `.githooks/pre-push` shim — pre-push hook прошёл, push успешен)
+- [x] Re-audit сабагентом `ecosystem-auditor` → 🟢 **88/100** (отчёт в `.memory/audit_v2.2.1_release.md`); все 4 находки v2.2.0 закрыты, новых ❌ нет
+- [x] `activeContext.md` Sprint Goals все 8 phases `[x]` (закрывает REPEAT-lesson по факту)
