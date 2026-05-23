@@ -46,12 +46,13 @@
 - [x] `.claude/commands/diag_status.md` — slash-команда, вызывает дашборд `--summary` и предлагает actions для каждого не-зелёного индикатора
 - [x] Unit-тест: текущее состояние — полный отчёт без падения, summary показывает 🟢 везде
 
-## Phase 6 — Ecosystem health injection в session_start.py (Layer C)
+## Phase 6 — Ecosystem health injection в session_start.py (Layer C) — **DONE**
 
-- Новый блок `## 📊 Ecosystem health` в инжекте — объединяет audit/lessons/hooks/version-sync индикаторы
-- Заменяет разрозненные сигналы (старые `audit:` / `lessons:` / `git:` блоки переезжают внутрь)
-- Светофор-логика — из `_ecosystem_health.py`
-- Unit-тест: новая сессия → блок виден, цвета соответствуют состоянию журналов
+- [x] Новый блок `## 📊 Ecosystem health` в инжекте — 4 индикатора (audit / lessons / hooks / version sync), всегда печатается, мирорит `diag_dashboard.py --summary`
+- [x] Старый `emit_lessons_freshness()` удалён — lessons-сигнал теперь часть unified block через `consolidate_status()` (strictly more informative)
+- [x] Action-блоки (🔴 AUDIT REQUIRED / 🟡 CONSOLIDATE RECOMMENDED) остались отдельно ВЫШЕ summary — урgent action видим первым; summary даёт at-a-glance статус
+- [x] Светофор-логика и version-sync чтение — из `_ecosystem_health` модуля + stdlib (json/re для plugin.json + CHANGELOG)
+- [x] Unit-тест: новая сессия → блок виден в инжекте, все 4 индикатора 🟢, версии 2.1.1 совпадают
 
 ## Phase 7 — Release v2.2.0
 

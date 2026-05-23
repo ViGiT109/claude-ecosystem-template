@@ -91,20 +91,11 @@ def emit_active_context() -> None:
         print()
 
 
-def emit_lessons_freshness() -> None:
-    path = PROJECT_DIR / ".memory" / "lessons.md"
-    if not path.exists():
-        return
-    mtime = dt.datetime.fromtimestamp(path.stat().st_mtime)
-    age_days = (dt.datetime.now() - mtime).days
-    if age_days < 7:
-        status = "🟢 fresh"
-    elif age_days < 30:
-        status = "🟡 getting stale"
-    else:
-        status = "🔴 overdue for update"
-    print(f"## 📚 lessons.md: {status} (updated {age_days} days ago — {mtime:%Y-%m-%d})")
-    print()
+# NOTE: emit_lessons_freshness() removed in v2.2 Phase 6 — its lessons-freshness
+# signal is now part of the unified `## 📊 Ecosystem health` block emitted by
+# `emit_ecosystem_health_summary()`. The consolidate-status indicator covers the
+# same need (and uses both age and lesson count, which is strictly more
+# informative than mtime alone).
 
 
 def emit_audit_freshness() -> None:
@@ -147,6 +138,59 @@ def emit_consolidate_freshness() -> None:
         print("- Action: run `/consolidate_lessons` (or `anthropic-skills:consolidate-memory` skill)")
         print()
     # status == "ok" → silent
+
+
+def emit_ecosystem_health_summary() -> None:
+    """Print the unified `## 📊 Ecosystem health` block (Phase 6 of v2.2).
+
+    Always emitted — one compact table of light-signal indicators that
+    summarises the four cardinal axes (audit / lessons / hooks / version
+    sync). Action blocks (🔴 AUDIT REQUIRED, 🟡 CONSOLIDATE RECOMMENDED)
+    are emitted separately upstream — this block is the at-a-glance
+    status, not the call to action.
+
+    Sources of truth come from `_ecosystem_health`; the dashboard
+    (`scripts/diag_dashboard.py --summary`) renders the same data, so
+    the inject and the CLI agree by construction.
+    """
+    icon = {
+        "ok": "🟢", "aging": "🟡", "required": "🔴",
+        "recommended": "🟡", "stale": "🟡", "critical": "🔴",
+    }
+
+    audit_status, audit_reason = _eh.audit_status()
+    cons_status, cons_reason = _eh.consolidate_status()
+    hooks_status, hooks_reason = _eh.hook_health_status()
+
+    # Version sync: read three sources and compare. Stdlib only.
+    plugin_json = PROJECT_DIR / ".claude-plugin" / "plugin.json"
+    changelog = PROJECT_DIR / "CHANGELOG.md"
+    pv = cv = None
+    if plugin_json.exists():
+        try:
+            pv = json.loads(plugin_json.read_text(encoding="utf-8")).get("version")
+        except (OSError, json.JSONDecodeError):
+            pv = None
+    if changelog.exists():
+        try:
+            import re as _re
+            for line in changelog.read_text(encoding="utf-8").splitlines():
+                m = _re.match(r"^##\s+\[(\d+\.\d+\.\d+)\]", line)
+                if m:
+                    cv = m.group(1)
+                    break
+        except OSError:
+            pass
+    ver_ok = pv is not None and cv is not None and pv == cv
+    ver_icon = "🟢" if ver_ok else "🔴"
+    ver_note = f"plugin.json={pv}, CHANGELOG={cv}"
+
+    print("## 📊 Ecosystem health")
+    print(f"- audit:    {icon.get(audit_status, '❓')} {audit_status} — {audit_reason}")
+    print(f"- lessons:  {icon.get(cons_status, '❓')} {cons_status} — {cons_reason}")
+    print(f"- hooks:    {icon.get(hooks_status, '❓')} {hooks_status} — {hooks_reason}")
+    print(f"- version:  {ver_icon} {'synced' if ver_ok else 'drift'} ({ver_note})")
+    print()
 
 
 def _read_stdin_json() -> dict:
@@ -293,9 +337,11 @@ def main() -> int:
     print()
     emit_context_window_status(payload)
     emit_active_context()
-    emit_lessons_freshness()
+    # Action blocks (urgent, top-level) come first so the agent doesn't miss them.
     emit_audit_freshness()
     emit_consolidate_freshness()
+    # Compact health summary — always emitted, mirrors `diag_dashboard.py --summary`.
+    emit_ecosystem_health_summary()
     emit_git_status()
     print("_Run `/new_session` to load full context._")
     return 0
