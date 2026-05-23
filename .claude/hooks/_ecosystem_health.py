@@ -32,6 +32,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import os
+import re
 from pathlib import Path
 
 PROJECT_DIR = Path(os.environ.get("CLAUDE_PROJECT_DIR", ".")).resolve()
@@ -181,6 +182,102 @@ def lessons_count() -> int:
     except OSError:
         return 0
     return text.count("### Memory Item:")
+
+
+# ---------------------------------------------------------------------------
+# Lesson promotion detection (v2.3 Phase 3)
+#
+# Goal: catch the "recurred 2+ times → should be a rule" case automatically,
+# so the next post-release audit isn't the discovery channel. We *don't* use
+# semantic similarity (Jaccard / embeddings) — too noisy and not stdlib.
+# Instead we look for high-signal recurrence vocabulary the agent itself
+# writes when extracting a repeat lesson, then filter out items whose
+# Source line already records the promotion.
+
+# Phrases that signal "this lesson has actually recurred", not advisory text
+# like "if this trips a second time". Case-insensitive match.
+_PROMOTION_SIGNALS = re.compile(
+    r"\b(REPEAT|recurred|2nd occurrence|second occurrence|"
+    r"promotion required|rule promotion required|"
+    r"repeat\s*(?:→|->|to)\s*promote)\b",
+    re.IGNORECASE,
+)
+
+# Substring search on the Source line — when present, the lesson has already
+# been promoted (or is in flight). The Phase 1 promotion writes exactly this
+# marker into the Source line.
+_PROMOTED_MARKER = "promoted to rule"
+
+
+def _iter_memory_items() -> list[tuple[str, str]]:
+    """Split lessons.md into `(title_line, body)` tuples per Memory Item.
+
+    The body covers everything from the `### Memory Item:` header to the next
+    `###`/`##` header or EOF. Title line excludes the leading `### ` prefix.
+    """
+    if not LESSONS_FILE.exists():
+        return []
+    try:
+        text = LESSONS_FILE.read_text(encoding="utf-8")
+    except OSError:
+        return []
+
+    items: list[tuple[str, str]] = []
+    current_title: str | None = None
+    current_body: list[str] = []
+
+    for line in text.splitlines():
+        if line.startswith("### Memory Item:"):
+            if current_title is not None:
+                items.append((current_title, "\n".join(current_body)))
+            current_title = line[len("### "):].rstrip()
+            current_body = []
+        elif line.startswith("## ") or line.startswith("### "):
+            # New top-level / sibling section — closes the current item.
+            if current_title is not None:
+                items.append((current_title, "\n".join(current_body)))
+                current_title = None
+                current_body = []
+        elif current_title is not None:
+            current_body.append(line)
+
+    if current_title is not None:
+        items.append((current_title, "\n".join(current_body)))
+    return items
+
+
+def pending_promotions() -> list[str]:
+    """Return titles of lessons that look recurrent but haven't been promoted.
+
+    Heuristic: the body matches a high-signal recurrence phrase AND the Source
+    line does not contain "promoted to rule". Conservative on purpose — false
+    negatives are fine (the audit-ecosystem flow is the safety net), false
+    positives create noise the user sees every session start.
+    """
+    out: list[str] = []
+    for title, body in _iter_memory_items():
+        if not _PROMOTION_SIGNALS.search(body):
+            continue
+        # Look at the Source line specifically — that's where promotion is recorded.
+        source_line = ""
+        for line in body.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("**Source:**"):
+                source_line = stripped
+                break
+        if _PROMOTED_MARKER in source_line.lower():
+            continue
+        out.append(title)
+    return out
+
+
+def promotion_status() -> tuple[str, str]:
+    """Return ("ok"|"recommended", explanation)."""
+    pending = pending_promotions()
+    if not pending:
+        return "ok", "no recurrent lessons awaiting promotion"
+    n = len(pending)
+    return "recommended", f"{n} recurrent lesson(s) awaiting rule promotion"
 
 
 # ---------------------------------------------------------------------------

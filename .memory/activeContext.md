@@ -1,18 +1,18 @@
 # Active Context
 
-> **Updated:** 2026-05-23 — v2.3 спринт открыт, Phase 1 завершён.
+> **Updated:** 2026-05-23 — v2.3 спринт завершён. v2.3.0 в `main`.
 > Loaded automatically by `session_start.py` hook (first 25 lines).
 
 ## Current Focus
 
-**v2.3 спринт активен.** Тема — закрытие долгов из v2.2 §Loose ends: promotion рекуррентных lessons в детерминистические правила/guardrails, плюс tools-usage tracking.
+**v2.3 спринт закрыт. Idle.** Жду пост-релизный аудит → решение по хотфиксу или продолжению.
 
 ## Sprint Goals (v2.3)
 
-- [x] Phase 1 — Promote «Sprint Goals desync» lesson → rule + pre-commit guardrail
-- [x] Phase 2 — Tools usage tracking (PostToolUse aggregator + `tools_used` в audit_history)
-- [ ] Phase 3 — Lesson auto-promotion (semantic detection, опционально)
-- [ ] Phase N — Release v2.3.0
+- [x] Phase 1 — Promote «Sprint Goals desync» lesson → rule + pre-commit guardrail (`ed84cc8`)
+- [x] Phase 2 — Tools usage tracking (PostToolUse aggregator + `tools_used` в audit_history) (`5928f64`)
+- [x] Phase 3 — Lesson auto-promotion detector (keyword-based, не semantic)
+- [x] Phase N — Release v2.3.0
 
 ## Completed in v2.2 sprint
 

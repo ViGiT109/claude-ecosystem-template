@@ -87,9 +87,15 @@ def section_lessons() -> list[str]:
     age_days = _lessons_file_age_days()
     status, reason = _eh.consolidate_status()
     icon = {"ok": "🟢", "recommended": "🟡"}.get(status, "❓")
+    promo_status, promo_reason = _eh.promotion_status()
+    promo_icon = {"ok": "🟢", "recommended": "🟡"}.get(promo_status, "❓")
     lines = ["## Lessons"]
     lines.append(f"- Count: {count} (file age: {age_days} day(s))")
     lines.append(f"- Consolidate: {icon} {reason}")
+    lines.append(f"- Promotion:   {promo_icon} {promo_reason}")
+    if promo_status == "recommended":
+        for title in _eh.pending_promotions():
+            lines.append(f"  • {title}")
     return lines
 
 
@@ -225,9 +231,12 @@ def render_summary() -> list[str]:
                 break
     ver_ok = pv and cv and pv == cv
 
+    promo_status, _ = _eh.promotion_status()
+
     rows = [
         f"audit:     {icon.get(audit_status, '❓')} {audit_status}",
         f"lessons:   {icon.get(cons_status, '❓')} {cons_status}",
+        f"promotion: {icon.get(promo_status, '❓')} {promo_status}",
         f"hooks:     {icon.get(hook_status, '❓')} {hook_status}",
         f"version:   {'🟢 synced' if ver_ok else '🔴 drift'} (plugin.json={pv}, CHANGELOG={cv})",
     ]

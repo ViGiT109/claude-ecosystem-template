@@ -13,6 +13,52 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [2.3.0] — 2026-05-23
+
+Closes the loose ends carried over from v2.2: lesson → rule promotion path
+made deterministic, real per-session tool-usage telemetry, and an automated
+recurrence detector that surfaces unpromoted lessons before the next audit
+does. No backwards-incompatible changes — all additions are additive.
+
+### Added
+
+- **Pre-commit guardrail for activeContext.md Sprint Goals desync**
+  (`scripts/check_activectx_sprint_goals.py`, registered in
+  `.pre-commit-config.yaml`). Fires only when the `version` field of
+  `.claude-plugin/plugin.json` changes in the staged diff (release-bump
+  heuristic) and blocks the commit if any `- [ ]` / `- [/]` checkbox remains
+  under a `## Sprint Goals` heading. Promotes the v2.1.1 + v2.2.0 repeated
+  audit finding from a lesson into a deterministic rule (`.agents/rules/git.md
+  § Release Workflow`). E2E-verified across 6 cases.
+- **PostToolUse tool-usage aggregator** (`.claude/hooks/track_tools.py`).
+  Increments a per-session counter in `.memory/.session_tools.json`
+  (ephemeral, gitignored) on every tool call. `stop_audit.py` consumes the
+  session's bucket on each Stop hook and writes `tools_used: {tool: count}`
+  into the `audit_history.jsonl` entry, then GCs buckets older than 7 days.
+  Closes the v2.2 §Loose-ends item where `tools_used` was empty/wrong.
+- **Lesson auto-promotion detector** in `_ecosystem_health.py`
+  (`pending_promotions()`, `promotion_status()`). Scans `.memory/lessons.md`
+  for items whose body contains recurrence vocabulary (REPEAT / recurred /
+  2nd occurrence / promotion required / repeat→promote) and whose `Source:`
+  line does not yet record `promoted to rule`. Surfaced in three places:
+  `session_start.py` `## 📊 Ecosystem health` block (new `promotion:` row)
+  plus a 🟡 PROMOTE LESSON → RULE action block when recommended; the
+  `diag_dashboard.py` `## Lessons` section with the pending titles listed;
+  the `--summary` mode (and `/diag_status`) gains a 5th `promotion:` row.
+  Conservative heuristic — false negatives are fine, false positives create
+  noise on every session start.
+
+### Changed
+
+- **`.agents/rules/git.md` § Release Workflow** — new section codifies the
+  five release-commit invariants (plugin.json, CHANGELOG, task.md,
+  activeContext, tag). Explicit guidance: don't plan the next sprint in the
+  closing commit (that section's `[ ]` would trip the new guardrail).
+- **`.memory/lessons.md`** — the «activeContext.md Sprint Goals desync»
+  lesson is marked promoted with a pointer to the new rule + guardrail.
+
+---
+
 ## [2.2.1] — 2026-05-23
 
 Hotfix bundle from the post-v2.2.0 audit (🟡 75/100 — `.memory/audit_v2.2.0_release.md`).

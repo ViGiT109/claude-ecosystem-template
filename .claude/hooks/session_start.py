@@ -123,6 +123,27 @@ def emit_audit_freshness() -> None:
     # status == "ok" → silent
 
 
+def emit_promotion_recommendation() -> None:
+    """Emit a 🟡 PROMOTE LESSON marker when recurrent lessons await rule promotion.
+
+    v2.3 Phase 3 — detector for the upgrade-path step "lesson → rule" that
+    CLAUDE.md prescribes. Scans `.memory/lessons.md` for items whose body
+    contains recurrence vocabulary (REPEAT, recurred, 2nd occurrence, ...)
+    and whose Source line doesn't already record a promotion. Silent in the
+    happy path.
+    """
+    status, reason = _eh.promotion_status()
+    if status != "recommended":
+        return
+    print(f"## 🟡 PROMOTE LESSON → RULE — {reason}")
+    for title in _eh.pending_promotions():
+        print(f"- {title}")
+    print("- Action: codify in `.agents/rules/*.md`; add a deterministic guardrail")
+    print("  if violations recur. Update the lesson's `Source:` line with")
+    print("  `promoted to rule` once done so this signal clears.")
+    print()
+
+
 def emit_consolidate_freshness() -> None:
     """Emit a 🟡 CONSOLIDATE RECOMMENDED marker when memory needs a reflective pass.
 
@@ -160,6 +181,7 @@ def emit_ecosystem_health_summary() -> None:
 
     audit_status, audit_reason = _eh.audit_status()
     cons_status, cons_reason = _eh.consolidate_status()
+    promo_status, promo_reason = _eh.promotion_status()
     hooks_status, hooks_reason = _eh.hook_health_status()
 
     # Version sync: read three sources and compare. Stdlib only.
@@ -186,10 +208,11 @@ def emit_ecosystem_health_summary() -> None:
     ver_note = f"plugin.json={pv}, CHANGELOG={cv}"
 
     print("## 📊 Ecosystem health")
-    print(f"- audit:    {icon.get(audit_status, '❓')} {audit_status} — {audit_reason}")
-    print(f"- lessons:  {icon.get(cons_status, '❓')} {cons_status} — {cons_reason}")
-    print(f"- hooks:    {icon.get(hooks_status, '❓')} {hooks_status} — {hooks_reason}")
-    print(f"- version:  {ver_icon} {'synced' if ver_ok else 'drift'} ({ver_note})")
+    print(f"- audit:     {icon.get(audit_status, '❓')} {audit_status} — {audit_reason}")
+    print(f"- lessons:   {icon.get(cons_status, '❓')} {cons_status} — {cons_reason}")
+    print(f"- promotion: {icon.get(promo_status, '❓')} {promo_status} — {promo_reason}")
+    print(f"- hooks:     {icon.get(hooks_status, '❓')} {hooks_status} — {hooks_reason}")
+    print(f"- version:   {ver_icon} {'synced' if ver_ok else 'drift'} ({ver_note})")
     print()
 
 
@@ -340,6 +363,7 @@ def main() -> int:
     # Action blocks (urgent, top-level) come first so the agent doesn't miss them.
     emit_audit_freshness()
     emit_consolidate_freshness()
+    emit_promotion_recommendation()
     # Compact health summary — always emitted, mirrors `diag_dashboard.py --summary`.
     emit_ecosystem_health_summary()
     emit_git_status()
