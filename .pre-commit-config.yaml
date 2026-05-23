@@ -38,6 +38,17 @@ repos:
         files: ^(AGENTS\.md|\.agents/claude-overrides\.md|CLAUDE\.md|scripts/sync_agents_md\.py)$
         pass_filenames: false
 
+      # Blocks release-bump commits when activeContext.md::Sprint Goals still
+      # has unchecked [ ] / [/] phases. Lesson → rule → guardrail (v2.3 Phase 1)
+      # promotion of the v2.1.1 + v2.2.0 audit finding "Sprint Goals desync".
+      # Fires only when the `version` field of plugin.json is in the staged diff.
+      - id: activectx-sprint-goals
+        name: activeContext.md Sprint Goals desync check
+        entry: python scripts/check_activectx_sprint_goals.py
+        language: system
+        files: ^\.claude-plugin/plugin\.json$
+        pass_filenames: false
+
       # Python + uv only: verifies uv.lock is in sync with pyproject.toml
       - id: deps-sync
         name: Check uv.lock ↔ pyproject.toml sync

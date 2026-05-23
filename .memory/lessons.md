@@ -76,7 +76,7 @@
 **Title:** activeContext.md Sprint Goals checkbox state must match task.md at every release
 **Description:** Two consecutive audits (v2.1.1 and v2.2.0) found that `activeContext.md::Sprint Goals` still shows `- [ ] Phase N` AFTER the release commit, even when `task.md` has all phases `[x]`. v2.1.1 audit P3 → expected one-off. v2.2.0 audit P3 (REPEAT) → systemic. Pre-commit guardrail only scans `task.md`, so the activeContext desync slips through every time.
 **Content:** **Rule:** every release commit (`release: vX.Y.Z`) must include an `activeContext.md` Sprint Goals update where all phases are `[x]` (or removed entirely if the sprint is closed). **Promotion path:** since this is the 2nd occurrence, promote from lesson to rule in `.agents/rules/git.md` § Release Workflow. Optional automation: a pre-commit hook (running on commits whose message starts with `release:`) that greps `activeContext.md` for `^\s*-\s*\[ \].*Phase` and exits 1 if any unchecked phase remains in Sprint Goals.
-**Source:** v2.1.1 audit (one-off) + v2.2.0 audit (REPEAT) | outcome: rule promotion required
+**Source:** v2.1.1 audit (one-off) + v2.2.0 audit (REPEAT) | outcome: **promoted to rule + guardrail in v2.3 Phase 1** (`.agents/rules/git.md § Release Workflow`, `scripts/check_activectx_sprint_goals.py`)
 
 ---
 

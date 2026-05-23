@@ -1,11 +1,18 @@
 # Active Context
 
-> **Updated:** 2026-05-23 — v2.2 спринт завершён. v2.2.0 + хотфикс v2.2.1 в `main`.
+> **Updated:** 2026-05-23 — v2.3 спринт открыт, Phase 1 завершён.
 > Loaded automatically by `session_start.py` hook (first 25 lines).
 
 ## Current Focus
 
-**v2.2 спринт закрыт. Idle.** Жду следующее направление от пользователя. Возможные кандидаты на v2.3 — см. §Loose ends.
+**v2.3 спринт активен.** Тема — закрытие долгов из v2.2 §Loose ends: promotion рекуррентных lessons в детерминистические правила/guardrails, плюс tools-usage tracking.
+
+## Sprint Goals (v2.3)
+
+- [x] Phase 1 — Promote «Sprint Goals desync» lesson → rule + pre-commit guardrail
+- [ ] Phase 2 — Tools usage tracking (in-process aggregator для `tools_used`)
+- [ ] Phase 3 — Lesson auto-promotion (semantic detection, опционально)
+- [ ] Phase N — Release v2.3.0
 
 ## Completed in v2.2 sprint
 
