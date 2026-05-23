@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -85,26 +86,53 @@ def read_ecosystem_version() -> str | None:
 
 
 def read_pushed_tags() -> list[str]:
-    """Parse git pre-push stdin → list of pushed tag names.
+    """Return tag names being considered for push.
 
-    Stdin format (one line per ref):
-        <local_ref> <local_sha> <remote_ref> <remote_sha>
+    Strategy (in order):
+    1. `git tag --points-at HEAD` — primary source. Catches the canonical
+       release flow `git push --follow-tags` because the new tag points
+       at the just-committed HEAD. Works regardless of how the hook is
+       invoked (raw git hook, pre-commit framework wrapper, manual CLI).
+       Added in v2.2.1 after the v2.2.0 audit found that pre-commit
+       framework on Windows silently passes pre-push hooks without
+       executing the script — making stdin parsing alone unreliable.
+    2. Git's pre-push stdin (`<local_ref> <local_sha> <remote_ref>
+       <remote_sha>`), if non-empty. Only populated when the hook is run
+       as a raw `.git/hooks/pre-push` and the caller did not redirect
+       stdin. Kept for direct-invocation unit tests.
 
-    A deletion has local_sha = 40 zeros; we ignore those (nothing to verify).
+    Deletions (local_sha = 40 zeros) are skipped — nothing to verify.
     """
     tags: list[str] = []
+
+    # (1) Tags pointing at HEAD — primary, framework-independent.
     try:
-        for raw in sys.stdin:
-            parts = raw.strip().split()
-            if len(parts) < 4:
-                continue
-            local_ref, local_sha = parts[0], parts[1]
-            if local_sha == "0" * 40:
-                continue  # deletion — skip
-            if local_ref.startswith("refs/tags/"):
-                tags.append(local_ref[len("refs/tags/"):])
-    except Exception:
+        r = subprocess.run(
+            ["git", "tag", "--points-at", "HEAD"],
+            capture_output=True, text=True, timeout=5, check=False,
+        )
+        if r.returncode == 0:
+            tags.extend(t.strip() for t in r.stdout.splitlines() if t.strip())
+    except (OSError, subprocess.TimeoutExpired):
         pass
+
+    # (2) Stdin (pre-push protocol). Only effective when invoked raw.
+    if not sys.stdin.isatty():
+        try:
+            for raw in sys.stdin:
+                parts = raw.strip().split()
+                if len(parts) < 4:
+                    continue
+                local_ref, local_sha = parts[0], parts[1]
+                if local_sha == "0" * 40:
+                    continue  # deletion — skip
+                if local_ref.startswith("refs/tags/"):
+                    tag = local_ref[len("refs/tags/"):]
+                    if tag not in tags:
+                        tags.append(tag)
+        except Exception:
+            pass
+
     return tags
 
 

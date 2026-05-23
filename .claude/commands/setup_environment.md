@@ -49,25 +49,33 @@ pip install -r requirements.txt
 npm install
 ```
 
-## Step 3: Pre-commit hooks
+## Step 3: Pre-commit hooks + version-sync shim
 
 ```powershell
 # Python projects with uv:
 uv run pre-commit install
-uv run pre-commit install --hook-type pre-push
+
 # Python projects with pip:
 pre-commit install
-pre-commit install --hook-type pre-push
+
 # Node projects:
 npx husky install
+
+# Always (regardless of language): activate the raw .githooks/pre-push shim
+# that bypasses pre-commit framework for the version-sync guardrail.
+git config core.hooksPath .githooks
 ```
 
 This activates:
 - Linter enforcement (ruff / eslint)
 - `task.md` guardrail (blocks commit when tasks are unchecked)
 - Dependency sync check
-- **Pre-push:** version-sync guardrail (blocks `git push --tags` when
-  `plugin.json`, CHANGELOG, `.ecosystem.toml` and the pushed tag disagree)
+- **Pre-push:** version-sync guardrail via `.githooks/pre-push` shim
+  (blocks `git push --tags` when `plugin.json`, CHANGELOG, `.ecosystem.toml`
+  and the pushed tag disagree). The shim delegates back to pre-commit's
+  `hook-impl` for any other pre-push hooks. v2.2.1 — pre-commit framework
+  was silently passing the check on Windows, so the guardrail was moved to
+  a raw shim.
 
 ## Step 4: Health check
 

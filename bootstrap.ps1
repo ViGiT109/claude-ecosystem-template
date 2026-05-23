@@ -256,6 +256,14 @@ if (-not (Test-Path $gitDir)) {
     Write-Host "→ Git repository already exists — skipping git init"
 }
 
+# Activate the raw .githooks/pre-push shim (v2.2.1 — bypasses pre-commit
+# framework for the version-sync guardrail; framework was silently skipping
+# the check on Windows).
+if (Test-Path (Join-Path $ProjectRoot '.githooks')) {
+    & git -C $ProjectRoot config core.hooksPath .githooks
+    Write-Host "→ git config core.hooksPath = .githooks  (version-sync shim active)" -ForegroundColor Green
+}
+
 # ── Remove template-only files ────────────────────────────────────────────────
 $toRemove = @('TEMPLATE_README.md', 'bootstrap.ps1')
 foreach ($f in $toRemove) {

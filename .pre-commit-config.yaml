@@ -47,13 +47,12 @@ repos:
         pass_filenames: false
         # Remove this hook if not using uv
 
-      # Pre-push only: blocks `git push --tags` when the version is out of sync
-      # across plugin.json / CHANGELOG.md / .ecosystem.toml / pushed tags.
-      # Install with: pre-commit install --hook-type pre-push
-      - id: check-version-sync
-        name: plugin.json ↔ CHANGELOG ↔ .ecosystem.toml ↔ tag sync
-        entry: python scripts/check_version_sync.py --pre-push
-        language: system
-        always_run: true
-        pass_filenames: false
-        stages: [pre-push]
+      # NOTE: The pre-push version-sync guardrail (scripts/check_version_sync.py)
+      # is intentionally NOT registered here. v2.2.0 audit found that pre-commit
+      # framework silently passes the hook without actually executing it on
+      # this Windows machine (and possibly elsewhere — root cause unclear, but
+      # standalone CLI works perfectly). v2.2.1 ships the same check as a raw
+      # shell shim at `.githooks/pre-push`, enabled via
+      # `git config core.hooksPath .githooks` in bootstrap. The shim runs the
+      # script directly and then delegates the rest of the pre-push pipeline
+      # back to pre-commit via `pre-commit hook-impl`.

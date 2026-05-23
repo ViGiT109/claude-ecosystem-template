@@ -13,6 +13,62 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [2.2.1] — 2026-05-23
+
+Hotfix bundle from the post-v2.2.0 audit (🟡 75/100 — `.memory/audit_v2.2.0_release.md`).
+v2.2.0 shipped the pre-push version-sync guardrail registered through pre-commit
+framework. The standalone CLI worked correctly, but pre-commit framework on
+Windows silently passed the hook (~0.07s) without actually executing the script
+— Layer A's flagship deterministic guardrail was bypassable in real `git push`
+flow. v2.2.1 fixes this and the long-running activeContext-vs-task.md desync gap.
+
+### Fixed
+
+- **Pre-push guardrail moved out of pre-commit framework into raw shim**
+  (`.githooks/pre-push`). Activated via `git config core.hooksPath .githooks`
+  (added to `bootstrap.ps1`, documented in `setup_environment.md`,
+  `ENVIRONMENT_SETUP.md`, `deploy-fresh/SKILL.md`). The shim runs the
+  version-sync check directly, then `exec`s `pre-commit hook-impl
+  --hook-type pre-push` to delegate the remaining pre-push pipeline. Real
+  `git push origin v9.9.9` (wrong version) is now hard-blocked with the full
+  diagnostic; `check-version-sync` entry was removed from `.pre-commit-config.yaml`
+  with an inline comment explaining why.
+- **`scripts/check_version_sync.py::read_pushed_tags()`** rewritten to use
+  `git tag --points-at HEAD` as the primary source (framework-independent),
+  falling back to stdin parsing for direct-invocation tests. The previous
+  stdin-only implementation was the second half of the v2.2.0 bug — even when
+  invoked via raw hook, pre-commit's wrapper swallows git's stdin.
+- **`scripts/train_reasoning_bank.py`** — `lesson_by_id = {l[…]: …}`
+  renamed `l → lesson` (ruff E741 ambiguous-variable), pre-existing debt
+  exposed by the E2E test running ruff over all files.
+
+### Added
+
+- **`scripts/test_pre_push_e2e.py`** — E2E test that invokes
+  `.githooks/pre-push` directly with synthetic git pre-push stdin and
+  asserts both blocking (wrong-version tag at HEAD → exit non-zero with
+  VERSION SYNC FAILED) and pass-through (no wrong tag → version check
+  doesn't fire). Closes the audit gap: v2.2.0 had unit tests but no
+  integration test, which is precisely how the pre-commit-framework silent-
+  skip bug slipped past.
+- **`.memory/lessons.md` × 3 new entries:**
+  «pre-commit framework silently skips pre-push hooks on Windows — use raw
+  .githooks/ shim», «ship-prod-run-before-DONE applies to integration tests
+  too», «activeContext.md Sprint Goals desync — repeat → promote to rule».
+- **`.memory/audit_v2.2.0_release.md`** — full v2.2.0 post-release audit
+  report (🟡 75/100, 15-item scorecard, devil's advocate, fix plan).
+
+### Changed
+
+- `plugin.json` 2.2.0 → 2.2.1.
+- `.ecosystem.toml::ecosystem.version` synced to 2.2.1.
+- `bootstrap.ps1` — appended `git config core.hooksPath .githooks` after
+  `git init`, with green confirmation message.
+- `activeContext.md` Sprint Goals — Phase 1-7 all `[x]`, v2.2.0 + v2.2.1
+  marked as released (closes the REPEAT lesson item by example).
+
+---
+
 ## [2.2.0] — 2026-05-23
 
 Self-Diagnostic Ecosystem. Шесть фаз в `main`, три слоя гарантий: A —

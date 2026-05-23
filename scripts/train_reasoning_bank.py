@@ -41,7 +41,7 @@ def get_training_data() -> list[InputExample]:
         print("⚠️  No lessons found.")
         return []
 
-    lesson_by_id = {l["id"]: l for l in lessons}
+    lesson_by_id = {lesson["id"]: lesson for lesson in lessons}
     train_examples: list[InputExample] = []
 
     if RETRIEVAL_LOGS_FILE.exists():

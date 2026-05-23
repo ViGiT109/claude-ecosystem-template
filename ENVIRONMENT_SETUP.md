@@ -75,18 +75,20 @@ Required scopes: `repo`, `read:org`.
 ```powershell
 # Python (uv):
 uv run pre-commit install
-uv run pre-commit install --hook-type pre-push
 # Python (pip):
 pre-commit install
-pre-commit install --hook-type pre-push
+
+# Always: activate the raw .githooks/pre-push shim for the version-sync guardrail.
+git config core.hooksPath .githooks
 ```
 
 Hooks enabled by default:
 - **Ruff lint** — Python projects only
 - **task.md guardrail** — blocks commit when unchecked tasks remain
 - **deps-sync** — verifies `uv.lock` is in sync with `pyproject.toml`
-- **Pre-push: version-sync** — blocks `git push --tags` when
-  `plugin.json`, CHANGELOG and the pushed tag disagree
+- **Pre-push: version-sync** (via `.githooks/pre-push` shim) — blocks
+  `git push --tags` when `plugin.json`, CHANGELOG and the pushed tag
+  disagree. Delegates remaining pre-push hooks back to pre-commit.
 
 ---
 

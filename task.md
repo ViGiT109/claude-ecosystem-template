@@ -54,17 +54,57 @@
 - [x] Светофор-логика и version-sync чтение — из `_ecosystem_health` модуля + stdlib (json/re для plugin.json + CHANGELOG)
 - [x] Unit-тест: новая сессия → блок виден в инжекте, все 4 индикатора 🟢, версии 2.1.1 совпадают
 
-## Phase 7 — Release v2.2.0 (prep) — **DONE**
+## Phase 7 — Release v2.2.0 — **DONE**
 
 ### Prep
 - [x] Bump `.claude-plugin/plugin.json::version` 2.1.1 → 2.2.0
-- [x] `python scripts/update_ecosystem.py --from . --apply` — синк `.ecosystem.toml::ecosystem.version` (51 unchanged, секция [ecosystem] обновлена с version=2.2.0)
+- [x] `python scripts/update_ecosystem.py --from . --apply` — синк `.ecosystem.toml::ecosystem.version`
 - [x] CHANGELOG §[2.2.0] — описаны все 6 фаз с Layer A/B/C группировкой + Added/Changed/Fixed
-- [x] Standalone check_version_sync.py: ✅ versions in sync (plugin.json=CHANGELOG=.ecosystem.toml=2.2.0)
+- [x] Standalone check_version_sync.py: ✅ versions in sync
 
-### Pending closure (отдельный state-sync коммит ПОСЛЕ тега и аудита)
+### Self-test
+- [x] Self-test pre-push: фейк-тег v9.9.9 → push **прошёл** (а должен был блокировать!) → выявлен P1 баг pre-commit framework silent-skip → автохотфикс v2.2.1
 
-- Self-test: temp-тег v9.9.9 → push блокирован pre-push guardrail → удалить
-- Аннотированный тег v2.2.0 + push --follow-tags (свой pre-push guardrail должен пройти)
-- Post-release audit сабагентом → ≥ 85/100 (иначе хотфикс v2.2.1)
-- activeContext.md синхронизирован, Sprint Goals [x]
+### Release
+- [x] Аннотированный тег `v2.2.0` создан и запушен (`524224b`)
+- [x] Pre-push hook через pre-commit framework "Passed" — но это false positive (хук физически не выполнялся, баг закрыт в Phase 8)
+
+### Post-release
+- [x] Пост-релизный аудит сабагентом ecosystem-auditor → 🟡 75/100 (отчёт в `.memory/audit_v2.2.0_release.md`)
+- [x] Балл < 85 → автономно собран v2.2.1 хотфикс (прецедент v2.1.0 → v2.1.1, feedback_autonomous_decisions)
+
+## Phase 8 — Hotfix v2.2.1 — **DONE**
+
+Закрывает 4 находки аудита v2.2.0 + один pre-existing ruff долг.
+
+### Fix P1: pre-push guardrail bypass through pre-commit framework
+- [x] `.githooks/pre-push` (новый) — raw shell shim: запускает `python scripts/check_version_sync.py --pre-push` напрямую, потом `exec pre-commit hook-impl` для остальных pre-push hooks
+- [x] `git config core.hooksPath .githooks` добавлен в `bootstrap.ps1` (опт-ин при инициализации)
+- [x] Setup-доки (`setup_environment.md`, `ENVIRONMENT_SETUP.md`, `deploy-fresh/SKILL.md`) — обновлены: убран `pre-commit install --hook-type pre-push`, добавлен `git config core.hooksPath .githooks`
+- [x] `check-version-sync` блок удалён из `.pre-commit-config.yaml` с inline комментарием объясняющим почему
+
+### Fix root cause в check_version_sync.py
+- [x] `read_pushed_tags()` переписан: primary source — `git tag --points-at HEAD` (framework-independent), stdin parsing — fallback. Закрывает второй pre-commit baseline-баг (он не пробрасывает git's stdin в hook script)
+
+### Closes audit gap: integration test missing
+- [x] `scripts/test_pre_push_e2e.py` — E2E тест: инвокирует `.githooks/pre-push` напрямую с синтетическим git pre-push stdin, проверяет block + pass-through
+- [x] Тест прошёл: wrong tag v99.99.99 → exit non-zero с VERSION SYNC FAILED; no wrong tag → version check не срабатывает
+
+### Lessons
+- [x] `.memory/lessons.md` × 3 новых: pre-commit silent-skip Windows / E2E vs unit test / activeContext desync repeat → promote
+
+### Activeissue REPEAT close
+- [x] activeContext.md Sprint Goals все [x] (закрывает v2.1.1+v2.2.0 REPEAT-gap по факту)
+
+### Ruff debt cleanup
+- [x] `scripts/train_reasoning_bank.py` E741 fix: `lesson_by_id = {l[...]} → {lesson[...]}` (всплыл из E2E теста при ruff поверх всего репо)
+
+### CHANGELOG + release
+- [x] CHANGELOG §[2.2.1] описан
+- [x] plugin.json 2.2.0 → 2.2.1
+- [x] `.ecosystem.toml::ecosystem.version` синхронизирован (через update_ecosystem.py --apply)
+
+### Pending closure (отдельный state-sync коммит ПОСЛЕ тега и re-audit)
+
+- Аннотированный тег v2.2.1 + push --follow-tags (через .githooks/ shim — должен пройти)
+- Re-audit сабагентом → ≥ 85/100 (иначе следующий хотфикс v2.2.2)

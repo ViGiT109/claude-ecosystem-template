@@ -60,16 +60,20 @@ Open `.env` and set at minimum:
 ```powershell
 # Python:
 uv run pre-commit install
-uv run pre-commit install --hook-type pre-push
-# or: pre-commit install && pre-commit install --hook-type pre-push
+# or: pre-commit install
 
 # Node (if husky configured):
 npx husky install
+
+# Always: activate the raw .githooks/pre-push shim
+git config core.hooksPath .githooks
 ```
 
-The `--hook-type pre-push` line wires the version-sync guardrail
-(`scripts/check_version_sync.py`) — blocks `git push --tags` when
-`plugin.json`, CHANGELOG and the pushed tag disagree.
+`git config core.hooksPath .githooks` wires the version-sync guardrail
+(`scripts/check_version_sync.py` via `.githooks/pre-push`) — blocks
+`git push --tags` when `plugin.json`, CHANGELOG and the pushed tag
+disagree. v2.2.1 moved the guardrail out of pre-commit framework
+because the framework was silently skipping it on Windows.
 
 ## Step 5: Run health check
 

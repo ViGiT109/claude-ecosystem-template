@@ -1,0 +1,38 @@
+#!/bin/sh
+# v2.2.1 — raw pre-push shim that bypasses pre-commit framework for the
+# version-sync guardrail. Catches the bug found in v2.2.0 post-release
+# audit: pre-commit's `pre-commit hook-impl --hook-stage pre-push` was
+# silently passing without actually executing `check-version-sync` on
+# this Windows machine (and possibly elsewhere — root cause unclear,
+# but standalone CLI works perfectly).
+#
+# Strategy:
+#   1. Run the version-sync check directly — exit 1 stops the push.
+#   2. If still going, delegate to pre-commit's hook-impl for everything
+#      else registered at the pre-push stage (ruff, task-guardrail, …).
+#
+# Enabled by `git config core.hooksPath .githooks` (set in bootstrap and
+# documented in ENVIRONMENT_SETUP.md / setup_environment.md).
+
+set -e
+
+# (1) Version-sync guardrail — direct call, no framework in between.
+if [ -f scripts/check_version_sync.py ]; then
+    # Standalone mode (stdin redirected to /dev/null) — the script falls
+    # back to `git tag --points-at HEAD` for tag detection.
+    python scripts/check_version_sync.py --pre-push </dev/null
+fi
+
+# (2) Delegate the rest of the pre-push pipeline to pre-commit if available.
+if command -v pre-commit >/dev/null 2>&1; then
+    # Forward git's pre-push stdin (ref list) to pre-commit so its other
+    # pre-push hooks see it. `exec` replaces the current process so stdin
+    # is inherited cleanly.
+    exec pre-commit hook-impl \
+        --config=.pre-commit-config.yaml \
+        --hook-type=pre-push \
+        --hook-dir "$(dirname "$0")" \
+        -- "$@"
+fi
+
+exit 0
